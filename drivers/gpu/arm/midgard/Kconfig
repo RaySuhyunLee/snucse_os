@@ -1,0 +1,28 @@
+menuconfig MALI_MIDGARD
+        tristate "Mali Midgard series support"
+        default n
+        help
+          Enable this option to build support for a ARM Mali Midgard GPU.
+          To compile this driver as a module, choose M here:
+          this will generate a single module, called mali_kbase.
+
+
+config MALI_VER_R5P0_06REL0
+        bool "Mali Midgard Version R5P0-06REL0"
+        #depends on MALI_MIDGARD
+        #default y
+        help
+          Choose this option to select DDK version.
+
+if MALI_VER_R5P0_06REL0
+source "drivers/gpu/arm/midgard/r5p0_06rel0/Kconfig"
+endif
+
+config MALI_VER_R12P0_04REL0
+       bool "Mali Midgard Version R12P0-04REL0"
+       help
+         Choose this option to select DDK version.
+
+if MALI_VER_R12P0_04REL0
+source "drivers/gpu/arm/midgard/r12p0_04rel0/Kconfig"
+endif

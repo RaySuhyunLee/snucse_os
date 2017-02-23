@@ -1,0 +1,19 @@
+#
+# Asix network device configuration
+#
+
+config NET_VENDOR_ASIX
+	bool "Asix devices"
+	depends on SPI
+	---help---
+	  If you have a network (Ethernet) card belonging to this class, say Y
+
+if NET_VENDOR_ASIX
+
+config SPI_AX88796C
+	tristate "Asix AX88796C-SPI support"
+	depends on SPI
+	---help---
+	  Say Y here if you intend to attach a Asix AX88796C as SPI mode
+
+endif # NET_VENDOR_ASIX
