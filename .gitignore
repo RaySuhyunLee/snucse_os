@@ -97,3 +97,4 @@ exynos5422-artik10.dtb
 image.tar
 modules.img
 zImage
++!.cmslab-os-project-root
