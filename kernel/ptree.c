@@ -37,7 +37,7 @@ struct SearchResult {
 	int count;
 };
 
-void search_process_preorder(pid_t, int*, struct SearchResult*);
+void search_process_preorder(struct task_struct*, int*, struct SearchResult*);
 void push_task(struct task_struct*, struct SearchResult*);
 
 int sys_ptree(struct prinfo * buf, int *nr) { // buf = point of proc. data,  nr = # of prinfo entries
@@ -48,27 +48,36 @@ int sys_ptree(struct prinfo * buf, int *nr) { // buf = point of proc. data,  nr 
 	struct prinfo *data;
 	pid_t init_pid = 1;
 
+	printk(KERN_DEBUG "ptree called");
+
 	if( buf == NULL || nr == NULL) return EINVAL;
 	// EFAULT : if buf or nr are outside the accessible address space.
 
+	printk(KERN_DEBUG "copy from user");
 	copy_from_user(&num_to_read, nr, sizeof(int));
 
 	// initialize variables for traversal
-	data = kmalloc(sizeof(struct prinfo)*num_to_read, GFP_KERNEL)
+	data = kmalloc(sizeof(struct prinfo)*num_to_read, GFP_KERNEL);
 	if (!data) return -1; // FIXME proper error handling
 	result.data = data;
 	result.max_size = num_to_read;
 	result.count = 0;
 	
+	printk(KERN_DEBUG "tasklist locking...\n");
 	// lock untii traversal completes, to prevent data structures from changing
 	read_lock(&tasklist_lock);
-	search_process_preorder(init_pid, &process_count, &result);
+	printk(KERN_DEBUG "start traversal\n");
+	search_process_preorder(&init_task, &process_count, &result);
 	read_unlock(&tasklist_lock);
+	printk(KERN_DEBUG "tasklist unlocked\n");
 
+	printk(KERN_DEBUG "copy to user\n");
 	copy_to_user(nr, &(result.count), sizeof(int));
 	copy_to_user(buf, result.data, (result.count) * sizeof(struct prinfo));
 
 	kfree(data);
+
+	printk(KERN_DEBUG "ptree exiting...\n");
 
 	return process_count;
 }
@@ -77,28 +86,31 @@ int sys_ptree(struct prinfo * buf, int *nr) { // buf = point of proc. data,  nr 
 /*
  * recursively search for processes in preorder search.
  */
-void search_process_preorder(pid_t pid, int* count, struct SearchResult *result) {
-	struct task_struct* task = find_task_by_vpid(pid);
+void search_process_preorder(struct task_struct* task, int* count, struct SearchResult *result) {
 	struct task_struct* child;
 	struct list_head* child_list;
+	
+	printk(KERN_DEBUG "search_process_preorder: pid = %lu, comm = %s\n", task->pid, task->comm);
+
   push_task(task, result);
 	(*count)++;
 
 	// recursively search for every child
-	child_list = &(task->children);
-	while(child_list != NULL) {
-		child = container_of(child_list, struct task_struct, children);
-		search_process_preorder(child->pid, count, result);
-		child_list = child_list->next;
+	printk(KERN_DEBUG "search for every child\n");
+	list_for_each(child_list, &task->children) {
+		child = list_entry(child_list, struct task_struct, sibling);
+		printk(KERN_DEBUG "child == %p, child pid=%lu, comm = %s\n", child, child->pid, child->comm);
+		search_process_preorder(child, count, result);
 	}
 }
 
 void push_task(struct task_struct* task, struct SearchResult* result) {
 	int count = result->count;
-
-	struct prinfo* data;
+	struct prinfo *data;
 	struct task_struct* child;
 	struct task_struct* sibling;
+
+	printk(KERN_DEBUG "push_task called\n");
 
 	if (result->count >= result->max_size) return;
 
