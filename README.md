@@ -13,3 +13,9 @@ direct_set_debug.sh --sdb-set
 sdb root on
 push [원본파일] [destination]
 ```
+
+### printk 출력 레벨 변경
+```sh
+echo 8 > /proc/sys/kernel/printk
+```
+이렇게 하면 모든 메시지가 콘솔에 출력됨
