@@ -3,6 +3,7 @@
 #include <linux/sched.h>
 #include <linux/types.h>
 #include <linux/slab.h>
+#include <linux/uaccess.h>
 
 //depth-first search
 
@@ -50,7 +51,7 @@ int sys_ptree(struct prinfo * buf, int *nr) { // buf = point of proc. data,  nr 
 	if( buf == NULL || nr == NULL) return EINVAL;
 	// EFAULT : if buf or nr are outside the accessible address space.
 
-	memcpy(&num_to_read, nr, sizeof(int));
+	copy_from_user(&num_to_read, nr, sizeof(int));
 
 	// initialize variables for traversal
 	if (!data) return -1; // FIXME proper error handling
@@ -63,8 +64,10 @@ int sys_ptree(struct prinfo * buf, int *nr) { // buf = point of proc. data,  nr 
 	search_process_preorder(init_pid, &process_count, &result);
 	read_unlock(&tasklist_lock);
 
-	memcpy(nr, &(result.count), sizeof(int));
-	memcpy(buf, result.data, (result.count) * sizeof(struct prinfo));
+	copy_to_user(nr, &(result.count), sizeof(int));
+	copy_to_user(buf, result.data, (result.count) * sizeof(struct prinfo));
+
+	kfree(data);
 
 	return process_count;
 }
