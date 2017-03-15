@@ -45,7 +45,7 @@ int sys_ptree(struct prinfo * buf, int *nr) { // buf = point of proc. data,  nr 
 	int num_to_read;
 	int process_count = 0;
 	struct SearchResult result;
-	struct prinfo *data = kmalloc(sizeof(struct prinfo)*num_to_read, GFP_KERNEL);
+	struct prinfo *data;
 	pid_t init_pid = 1;
 
 	if( buf == NULL || nr == NULL) return EINVAL;
@@ -54,6 +54,7 @@ int sys_ptree(struct prinfo * buf, int *nr) { // buf = point of proc. data,  nr 
 	copy_from_user(&num_to_read, nr, sizeof(int));
 
 	// initialize variables for traversal
+	data = kmalloc(sizeof(struct prinfo)*num_to_read, GFP_KERNEL)
 	if (!data) return -1; // FIXME proper error handling
 	result.data = data;
 	result.max_size = num_to_read;
