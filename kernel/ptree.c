@@ -117,16 +117,21 @@ void push_task(struct task_struct* task, struct SearchResult* result) {
 
 //	child = list_entry ((task->children), struct task_struct, children);
 
-	child = container_of(&(task->children), struct task_struct, sibling);
+	/*
+	child = container_of(&(task->children.next), struct task_struct, sibling);
 	struct list_head * nsh = task->sibling.next;
 	struct list_head * nch = task->children.next;
 
 	if(!nsh)sib = list_entry(nsh,struct task_struct, sibling);
 	if(!nch)child = list_entry(nch, struct task_struct, sibling);
-
-//	child = container_of(&(task->children), struct task_struct, sibling);
-//	sib = container_of(&(task->sibling.next), struct task_struct, sibling);
-
+*/
+	child = container_of((task->children.next), struct task_struct, sibling);
+	sib = container_of((task->sibling.next), struct task_struct, sibling);
+	/*
+	if((sib->pid == 8388608)||(sib->pid==0)){
+	sib = NULL;
+	}
+*/
 	printk(KERN_DEBUG "\n\nJAED %d %d %d\n\n" , task->pid, child->pid, sib->pid);
 
 	data[count].next_sibling_pid = sib->pid;

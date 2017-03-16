@@ -51,7 +51,7 @@ void print_ptree_prinfo (/*parameters needed*/struct prinfo *ptree, int cnt_proc
 int main () {
 	
 	struct prinfo *buf;
-	int nr=400;
+	int nr=10;
 	int process_cnt;
 	
 	buf = calloc(nr,sizeof(struct prinfo));	//calloc needed?
