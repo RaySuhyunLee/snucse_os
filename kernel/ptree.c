@@ -19,18 +19,6 @@ struct prinfo {
 };
 */
 
-/* sched.h 
-task_struct : 1065th 
-read_lock(&tasklist_lock); 
-task_lock(struct task_struct *p) defined by sched.h 2268 line
-223 line extern rwlock_t tasklist_lock; 
-
-how we define tasklist? is it already defined?
-*/
-
-//void read_lock(struct task_struct * p){ task_lock(p);}
-//void read_unlock(struct task_struct *p) { task_unlock(p);}
-//
 struct SearchResult {
 	struct prinfo *data;
 	int max_size;
@@ -50,11 +38,11 @@ int sys_ptree(struct prinfo * buf, int *nr) { // buf = point of proc. data,  nr 
 
 	printk(KERN_DEBUG "ptree called");
 
-	if( buf == NULL || nr == NULL) return EINVAL;
+	if( buf == NULL || nr == NULL) return -EINVAL;
 	// EFAULT : if buf or nr are outside the accessible address space.
 
 	printk(KERN_DEBUG "copy from user");
-	copy_from_user(&num_to_read, nr, sizeof(int));
+	if(copy_from_user(&num_to_read, nr, sizeof(int)) != 0) return -EFAULT ;
 
 	// initialize variables for traversal
 	data = kmalloc(sizeof(struct prinfo)*num_to_read, GFP_KERNEL);
@@ -62,7 +50,6 @@ int sys_ptree(struct prinfo * buf, int *nr) { // buf = point of proc. data,  nr 
 	result.data = data;
 	result.max_size = num_to_read;
 	result.count = 0;
-	
 	printk(KERN_DEBUG "tasklist locking...\n");
 	// lock untii traversal completes, to prevent data structures from changing
 	read_lock(&tasklist_lock);
@@ -72,8 +59,8 @@ int sys_ptree(struct prinfo * buf, int *nr) { // buf = point of proc. data,  nr 
 	printk(KERN_DEBUG "tasklist unlocked\n");
 
 	printk(KERN_DEBUG "copy to user\n");
-	copy_to_user(nr, &(result.count), sizeof(int));
-	copy_to_user(buf, result.data, (result.count) * sizeof(struct prinfo));
+	if(copy_to_user(nr, &(result.count), sizeof(int)) != 0) return -EFAULT; ;
+	if(copy_to_user(buf, result.data, (result.count) * sizeof(struct prinfo)) !=0 ) return -EFAULT;
 
 	kfree(data);
 
