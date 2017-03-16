@@ -45,11 +45,7 @@ int sys_ptree(struct prinfo * buf, int *nr) { // buf = point of proc. data,  nr 
 	if(copy_from_user(&num_to_read, nr, sizeof(int)) != 0) return -EFAULT ;
 
 	// initialize variables for traversal
-<<<<<<< HEAD
-	data = kmalloc(sizeof(struct prinfo)*num_to_read, GFP_KERNEL)
-=======
 	data = kmalloc(sizeof(struct prinfo)*num_to_read, GFP_KERNEL);
->>>>>>> origin/proj1-ptree_search
 	if (!data) return -1; // FIXME proper error handling
 	result.data = data;
 	result.max_size = num_to_read;
@@ -101,7 +97,7 @@ void push_task(struct task_struct* task, struct SearchResult* result) {
 	int count = result->count;
 	struct prinfo *data;
 	struct task_struct* child;
-//	struct task_struct* sibling;
+	//struct task_struct* sibling;
 	struct task_struct* sib; // for the JaeD test
 
 	printk(KERN_DEBUG "push_task called\n");
@@ -117,13 +113,19 @@ void push_task(struct task_struct* task, struct SearchResult* result) {
 		break;
 	}
 */
-//	sib = list_entry ( &(task->sibling), struct task_struct, sibling);
+//	sib = list_entry ((task->sibling), struct task_struct, sibling);
 
-//	child = list_entry ( &(task->children), struct task_struct, children);
+//	child = list_entry ((task->children), struct task_struct, children);
 
- 
 	child = container_of(&(task->children), struct task_struct, sibling);
-	sib = container_of(&(task->sibling.next), struct task_struct, sibling);
+	struct list_head * nsh = task->sibling.next;
+	struct list_head * nch = task->children.next;
+
+	if(!nsh)sib = list_entry(nsh,struct task_struct, sibling);
+	if(!nch)child = list_entry(nch, struct task_struct, sibling);
+
+//	child = container_of(&(task->children), struct task_struct, sibling);
+//	sib = container_of(&(task->sibling.next), struct task_struct, sibling);
 
 	printk(KERN_DEBUG "\n\nJAED %d %d %d\n\n" , task->pid, child->pid, sib->pid);
 
