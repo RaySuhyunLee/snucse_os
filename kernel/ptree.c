@@ -50,6 +50,7 @@ int sys_ptree(struct prinfo * buf, int *nr) { // buf = point of proc. data,  nr 
 	result.data = data;
 	result.max_size = num_to_read;
 	result.count = 0;
+	
 	printk(KERN_DEBUG "tasklist locking...\n");
 	// lock untii traversal completes, to prevent data structures from changing
 	read_lock(&tasklist_lock);
@@ -81,11 +82,12 @@ void search_process_preorder(struct task_struct* task, int* count, struct Search
 
   push_task(task, result);
 	(*count)++;
-
 	// recursively search for every child
 	printk(KERN_DEBUG "search for every child\n");
 	list_for_each(child_list, &task->children) {
 		child = list_entry(child_list, struct task_struct, sibling);
+		
+//		comp = container_of(child_list, struct task_struct, sibling);
 		printk(KERN_DEBUG "child == %p, child pid=%lu, comm = %s\n", child, child->pid, child->comm);
 		search_process_preorder(child, count, result);
 	}
@@ -95,21 +97,38 @@ void push_task(struct task_struct* task, struct SearchResult* result) {
 	int count = result->count;
 	struct prinfo *data;
 	struct task_struct* child;
-	struct task_struct* sibling;
+//	struct task_struct* sibling;
+	struct task_struct* sib; // for the JaeD test
 
 	printk(KERN_DEBUG "push_task called\n");
 
 	if (result->count >= result->max_size) return;
 
 	data = result->data;
-	child = container_of(&(task->children), struct task_struct, children);
-	sibling = container_of(&(task->sibling), struct task_struct, sibling);
+/*
+	struct list_head* temp;
+	list_for_each(temp , &task->children) {
+		child = list_entry ( temp, struct task_struct, sibling);
+		printk(KERN_DEBUG "\n\n\nJAED %d\n\n\n",child->pid);
+		break;
+	}
+*/
+//	sib = list_entry ( &(task->sibling), struct task_struct, sibling);
 
+//	child = list_entry ( &(task->children), struct task_struct, children);
+
+ 
+	child = container_of(&(task->children), struct task_struct, sibling);
+	sib = container_of(&(task->sibling.next), struct task_struct, sibling);
+
+	printk(KERN_DEBUG "\n\nJAED %d %d %d\n\n" , task->pid, child->pid, sib->pid);
+
+	data[count].next_sibling_pid = sib->pid;
 	data[count].state = task->state;
 	data[count].pid = task->pid;
 	data[count].parent_pid = task->parent->pid;
 	data[count].first_child_pid = child->pid;
-	data[count].next_sibling_pid = sibling->pid;
+//	data[count].next_sibling_pid = sibling->pid;
 	data[count].uid = task->cred->uid;
 	strcpy(data[count].comm, task->comm);
 
