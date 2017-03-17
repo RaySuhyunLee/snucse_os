@@ -34,14 +34,13 @@ int sys_ptree(struct prinfo * buf, int *nr) { // buf = point of proc. data,  nr 
 	int process_count = 0;
 	struct SearchResult result;
 	struct prinfo *data;
-	pid_t init_pid = 1;
 
-	printk(KERN_DEBUG "ptree called");
+	printk(KERN_DEBUG "[ptree] running...\n");
 
 	if( buf == NULL || nr == NULL) return -EINVAL;
 	// EFAULT : if buf or nr are outside the accessible address space.
-
-	printk(KERN_DEBUG "copy from user");
+ 
+	//printk(KERN_DEBUG "copy from user\n");
 	if(copy_from_user(&num_to_read, nr, sizeof(int)) != 0) return -EFAULT ;
 
 	// initialize variables for traversal
@@ -51,24 +50,26 @@ int sys_ptree(struct prinfo * buf, int *nr) { // buf = point of proc. data,  nr 
 	result.max_size = num_to_read;
 	result.count = 0;
 	
-	printk(KERN_DEBUG "tasklist locking...\n");
+	//printk(KERN_DEBUG "tasklist locking...\n");
 	// lock untii traversal completes, to prevent data structures from changing
 	read_lock(&tasklist_lock);
-	printk(KERN_DEBUG "start traversal\n");
+	//printk(KERN_DEBUG "start traversal\n");
 	search_process_preorder(&init_task, &process_count, &result);
 	read_unlock(&tasklist_lock);
-	printk(KERN_DEBUG "tasklist unlocked\n");
+	//printk(KERN_DEBUG "tasklist unlocked\n");
 
-	printk(KERN_DEBUG "copy to user\n");
+	//printk(KERN_DEBUG "copy to user\n");
 	if(copy_to_user(nr, &(result.count), sizeof(int)) != 0) return -EFAULT; ;
 	if(copy_to_user(buf, result.data, (result.count) * sizeof(struct prinfo)) !=0 ) return -EFAULT;
 
 	kfree(data);
 
-	printk(KERN_DEBUG "ptree exiting...\n");
+	printk(KERN_DEBUG "[ptree] search complete. Exiting...\n");
 
 	return process_count;
 }
+
+
 
 
 /*
@@ -78,57 +79,39 @@ void search_process_preorder(struct task_struct* task, int* count, struct Search
 	struct task_struct* child;
 	struct list_head* child_list;
 	
-	printk(KERN_DEBUG "search_process_preorder: pid = %lu, comm = %s\n", task->pid, task->comm);
+	//printk(KERN_DEBUG "search_process_preorder: pid = %lu, comm = %s\n", task->pid, task->comm);
 
   push_task(task, result);
 	(*count)++;
 	// recursively search for every child
-	printk(KERN_DEBUG "search for every child\n");
 	list_for_each(child_list, &task->children) {
 		child = list_entry(child_list, struct task_struct, sibling);
-		
-//		comp = container_of(child_list, struct task_struct, sibling);
-		printk(KERN_DEBUG "child == %p, child pid=%lu, comm = %s\n", child, child->pid, child->comm);
 		search_process_preorder(child, count, result);
 	}
 }
 
+// TODO please explain what this is
+#define TASK_PID_MAX 8388608
+
 void push_task(struct task_struct* task, struct SearchResult* result) {
 	int count = result->count;
 	struct prinfo *data;
-	struct task_struct* child;
-//	struct task_struct* sibling;
-	struct task_struct* sib; // for the JaeD test
+	struct task_struct *child_first = NULL, *sibling_next = NULL;
 
-	printk(KERN_DEBUG "push_task called\n");
-
+	//printk(KERN_DEBUG "push_task called\n");
 	if (result->count >= result->max_size) return;
 
 	data = result->data;
-/*
-	struct list_head* temp;
-	list_for_each(temp , &task->children) {
-		child = list_entry ( temp, struct task_struct, sibling);
-		printk(KERN_DEBUG "\n\n\nJAED %d\n\n\n",child->pid);
-		break;
-	}
-*/
-//	sib = list_entry ( &(task->sibling), struct task_struct, sibling);
 
-//	child = list_entry ( &(task->children), struct task_struct, children);
+	child_first = list_first_entry_or_null(&(task->children), struct task_struct, sibling);
+	sibling_next = list_first_entry_or_null(&(task->sibling), struct task_struct, sibling);
+	if (sibling_next && sibling_next->pid == TASK_PID_MAX)	sibling_next = NULL;
 
- 
-	child = container_of(&(task->children), struct task_struct, sibling);
-	sib = container_of(&(task->sibling.next), struct task_struct, sibling);
-
-	printk(KERN_DEBUG "\n\nJAED %d %d %d\n\n" , task->pid, child->pid, sib->pid);
-
-	data[count].next_sibling_pid = sib->pid;
 	data[count].state = task->state;
 	data[count].pid = task->pid;
 	data[count].parent_pid = task->parent->pid;
-	data[count].first_child_pid = child->pid;
-//	data[count].next_sibling_pid = sibling->pid;
+	data[count].first_child_pid = (child_first != NULL) ? child_first->pid : 0;
+	data[count].next_sibling_pid = (sibling_next != NULL) ? sibling_next->pid : 0;
 	data[count].uid = task->cred->uid;
 	strcpy(data[count].comm, task->comm);
 
