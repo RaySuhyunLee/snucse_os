@@ -5,19 +5,8 @@
 #include <linux/slab.h>
 #include <linux/uaccess.h>
 
-//depth-first search
-
-/*
-struct prinfo {
-    long state;              current state of process
-    pid_t pid;               process id 
-    pid_t parent_pid;        process id of parent 
-    pid_t first_child_pid;   pid of oldest child 
-    pid_t next_sibling_pid;  pid of younger sibling 
-    long uid;                user id of process owner 
-    char comm[64];           name of program executed 
-};
-*/
+// TODO please explain what this is
+#define TASK_PID_MAX 8388608
 
 struct SearchResult {
 	struct prinfo *data;
@@ -41,11 +30,14 @@ int sys_ptree(struct prinfo * buf, int *nr) { // buf = point of proc. data,  nr 
 	// EFAULT : if buf or nr are outside the accessible address space.
  
 	//printk(KERN_DEBUG "copy from user\n");
-	if(copy_from_user(&num_to_read, nr, sizeof(int)) != 0) return -EFAULT ;
-
+	if(copy_from_user(&num_to_read, nr, sizeof(int)) != 0) return -EAGAIN ;
+	
+	if(!access_ok(VERIFY_READ, nr, sizeof(int))) return -EFAULT;
+	if(!access_ok(VERIFY_READ, buf, sizeof(struct prinfo) * num_to_read)) return -EFAULT;
+	
 	// initialize variables for traversal
 	data = kmalloc(sizeof(struct prinfo)*num_to_read, GFP_KERNEL);
-	if (!data) return -1; // FIXME proper error handling
+	if (!data) return -EAGAIN;
 	result.data = data;
 	result.max_size = num_to_read;
 	result.count = 0;
@@ -59,8 +51,8 @@ int sys_ptree(struct prinfo * buf, int *nr) { // buf = point of proc. data,  nr 
 	//printk(KERN_DEBUG "tasklist unlocked\n");
 
 	//printk(KERN_DEBUG "copy to user\n");
-	if(copy_to_user(nr, &(result.count), sizeof(int)) != 0) return -EFAULT; ;
-	if(copy_to_user(buf, result.data, (result.count) * sizeof(struct prinfo)) !=0 ) return -EFAULT;
+	if(copy_to_user(nr, &(result.count), sizeof(int)) != 0) return -EAGAIN;
+	if(copy_to_user(buf, result.data, (result.count) * sizeof(struct prinfo)) !=0 ) return -EAGAIN;
 
 	kfree(data);
 
@@ -90,8 +82,6 @@ void search_process_preorder(struct task_struct* task, int* count, struct Search
 	}
 }
 
-// TODO please explain what this is
-#define TASK_PID_MAX 8388608
 
 void push_task(struct task_struct* task, struct SearchResult* result) {
 	int count = result->count;
