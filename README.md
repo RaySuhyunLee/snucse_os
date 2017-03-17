@@ -19,3 +19,19 @@ push [원본파일] [destination]
 echo 8 > /proc/sys/kernel/printk
 ```
 이렇게 하면 모든 메시지가 콘솔에 출력됨
+
+## Register System Call
+### 1. Increment the number of System calls
+arch/arm/include/asm/unistd.h
+``` 
+#define __NR_syscalls  (N)
+```
+to
+```
+#define __NR_syscalls  (N+4)
+```
+Total number of system calls must be a multiplication of 4.
+
+### 2. 
+
+
