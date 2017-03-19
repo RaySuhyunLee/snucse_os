@@ -35,19 +35,27 @@ Total number of system calls must be a multiplication of 4.
 ### 2. assign system call number
 arch/arm/include/asm/unistd.h
 add
-`#define __NR_myfunc      (__NR_SYSCALL_BASE+ #)`
+```
+#define __NR_myfunc      (__NR_SYSCALL_BASE+ #) 
+```
 
 ### 3. make asmlinkage function
 include/linux/syscalls.h
-`asmlinkage int my_func()  // if no parameter then write 'void' `
+```
+asmlinkage int my_func()  // if no parameter then write 'void' 
+```
 
 ### 4. add to system call table
 arch/arm/kernel/calls.S
-`call(sys_myfunc)`
+```
+call(sys_myfunc)
+```
 
 ### 5. Revise Makefile
 kernel/Makefile
-` obj -y = ...  ptree.o`
+```
+obj -y = ...  ptree.o
+```
 
 ### etc.
  in kernel/myfunc.c
