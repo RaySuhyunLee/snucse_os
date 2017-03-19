@@ -1,5 +1,36 @@
 # os-team20
 
+## How to Build
+Building the kernel is simple. Just type
+```sh
+$ build
+```
+on the top directory of this repo.
+
+To build the test code, type
+```sh
+$ sh test/build.sh test1.c
+```
+on the top directory. The executable will be located in "test" directory.
+
+## High-Level Design & Implementation
+System call ptree[sys_ptree(`380`)] is implemented using recursive strategy. The algorithm consists of three parts.
+1. Start with `init_task`, which is the initial task with pid 0.
+2. Given a task, push it into the buffer
+3. Repeat `2 and 3` for every child process and halt.
+
+Overall design is depicted in the diagram below.  
+![](https://github.com/swsnu/os-team20/blob/master/Proj1%20Diagram.png)
+
+To avoid using global variable and achieve better design, we used our own structure named `SearchResult` to manage prinfo values. It's a basic implementation of array list.
+```c
+struct SearchResult {
+	struct prinfo *data; // pointer to prinfo array
+	int max_size;        // length of <data>
+	int count;           // actual number of prinfo elements
+};
+```
+
 ## 자주 쓰는 커맨드
 
 ### SDB 사용하는 법
@@ -20,46 +51,46 @@ echo 8 > /proc/sys/kernel/printk
 ```
 이렇게 하면 모든 메시지가 콘솔에 출력됨
 
-## Register System Call
+## How To Register System Call
 ### 1. Increment the number of System calls
-arch/arm/include/asm/unistd.h
-``` 
+in file: "arch/arm/include/asm/unistd.h"
+``` c
 #define __NR_syscalls  (N)
 ```
 to
-```
+```c
 #define __NR_syscalls  (N+4)
 ```
 Total number of system calls must be a multiplication of 4.
 
 ### 2. assign system call number
-arch/arm/include/asm/unistd.h
+in file: "arch/arm/include/asm/unistd.h"
 add
-```
+```c
 #define __NR_myfunc      (__NR_SYSCALL_BASE+ #) 
 ```
 
 ### 3. make asmlinkage function
-include/linux/syscalls.h
-```
+in file: "include/linux/syscalls.h"
+```c
 asmlinkage int my_func()  // if no parameter then write 'void' 
 ```
 
 ### 4. add to system call table
-arch/arm/kernel/calls.S
+in file: "arch/arm/kernel/calls.S"
 ```
 call(sys_myfunc)
 ```
 
 ### 5. Revise Makefile
-kernel/Makefile
+in file: "kernel/Makefile"
 ```
 obj -y = ...  ptree.o
 ```
 
 ### etc.
- in kernel/myfunc.c
- the name of function must be sys_myfunc()
+in file: "kernel/myfunc.c"  
+the name of function must be sys_myfunc()
 
 
 
