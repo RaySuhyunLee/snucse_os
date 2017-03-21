@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <unistd.h>
 #include <sys/types.h>
+#include<errno.h>
 
 #define NR_MAX 100	//the number of process to be printed
 
@@ -59,15 +60,12 @@ int main () {
 	
 	process_cnt = syscall(380, buf, &nr);
 	
-	/*
-	if(process_cnt < 0) {
-		perror("process count < 0");
-		return -1;
-	}
-	*/
-	
+	//ERROR CHECK
+	if(process_cnt == -1)  {
+		fprintf(stderr, "Something wrong!! lol. Error code : %d\n", errno);
+        return 1;
+    }	
 	print_ptree_prinfo(buf, nr);	
-	
 	free(buf);
 	
 	return 0;
