@@ -32,6 +32,7 @@ int sys_ptree(struct prinfo * buf, int *nr) { // buf = point of proc. data,  nr 
 	if(!access_ok(VERIFY_READ, nr, sizeof(int))) return -EFAULT;
 	if(!access_ok(VERIFY_READ, buf, sizeof(struct prinfo) * num_to_read)) return -EFAULT;
 	
+	if(*nr <1) return -EINVAL; 
 	//printk(KERN_DEBUG "copy from user\n");
 	if(copy_from_user(&num_to_read, nr, sizeof(int)) != 0) return -EAGAIN ;
 	
@@ -61,7 +62,6 @@ int sys_ptree(struct prinfo * buf, int *nr) { // buf = point of proc. data,  nr 
 	printk(KERN_DEBUG "[ptree] search complete. Exiting...\n");
 	
 	//when the number of entries is less then one.
-	if(process_count <1) return -EINVAL;
 	return process_count;
 }
 
