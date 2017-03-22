@@ -27,13 +27,14 @@ int sys_ptree(struct prinfo * buf, int *nr) { // buf = point of proc. data,  nr 
 	printk(KERN_DEBUG "[ptree] running...\n");
 
 	if( buf == NULL || nr == NULL) return -EINVAL;
+	
 	// EFAULT : if buf or nr are outside the accessible address space.
- 
+	if(!access_ok(VERIFY_READ, nr, sizeof(int))) return -EFAULT;
+	if(!access_ok(VERIFY_READ, buf, sizeof(struct prinfo) * num_to_read)) return -EFAULT;
+	
 	//printk(KERN_DEBUG "copy from user\n");
 	if(copy_from_user(&num_to_read, nr, sizeof(int)) != 0) return -EAGAIN ;
 	
-	if(!access_ok(VERIFY_READ, nr, sizeof(int))) return -EFAULT;
-	if(!access_ok(VERIFY_READ, buf, sizeof(struct prinfo) * num_to_read)) return -EFAULT;
 	
 	// initialize variables for traversal
 	data = kmalloc(sizeof(struct prinfo)*num_to_read, GFP_KERNEL);
@@ -46,6 +47,7 @@ int sys_ptree(struct prinfo * buf, int *nr) { // buf = point of proc. data,  nr 
 	// lock untii traversal completes, to prevent data structures from changing
 	read_lock(&tasklist_lock);
 	//printk(KERN_DEBUG "start traversal\n");
+	
 	search_process_preorder(&init_task, &process_count, &result);
 	read_unlock(&tasklist_lock);
 	//printk(KERN_DEBUG "tasklist unlocked\n");
@@ -57,7 +59,9 @@ int sys_ptree(struct prinfo * buf, int *nr) { // buf = point of proc. data,  nr 
 	kfree(data);
 
 	printk(KERN_DEBUG "[ptree] search complete. Exiting...\n");
-
+	
+	//when the number of entries is less then one.
+	if(process_count <=1) return -EINVAL;
 	return process_count;
 }
 
@@ -73,7 +77,7 @@ void search_process_preorder(struct task_struct* task, int* count, struct Search
 	
 	//printk(KERN_DEBUG "search_process_preorder: pid = %lu, comm = %s\n", task->pid, task->comm);
 
-  push_task(task, result);
+  	push_task(task, result);
 	(*count)++;
 	// recursively search for every child
 	list_for_each(child_list, &task->children) {
