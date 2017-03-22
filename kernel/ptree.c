@@ -61,7 +61,7 @@ int sys_ptree(struct prinfo * buf, int *nr) { // buf = point of proc. data,  nr 
 	printk(KERN_DEBUG "[ptree] search complete. Exiting...\n");
 	
 	//when the number of entries is less then one.
-	if(process_count <=1) return -EINVAL;
+	if(process_count <1) return -EINVAL;
 	return process_count;
 }
 
