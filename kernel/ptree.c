@@ -23,20 +23,16 @@ int sys_ptree(struct prinfo * buf, int *nr) { // buf = point of proc. data,  nr 
 	struct SearchResult result;
 	struct prinfo *data;
 
-	printk(KERN_DEBUG "[ptree] running...\n");
-
 	if( buf == NULL || nr == NULL) return -EINVAL;
 	
 	// EFAULT : if buf or nr are outside the accessible address space.
 	if(!access_ok(VERIFY_READ, nr, sizeof(int))) return -EFAULT;
 	if(!access_ok(VERIFY_READ, buf, sizeof(struct prinfo) * num_to_read)) return -EFAULT;
 	
-	
+	//EINVAL : # of entires is less than one
 	if(*nr <1) return -EINVAL; 
 	
-	//printk(KERN_DEBUG "copy from user\n");
 	if(copy_from_user(&num_to_read, nr, sizeof(int)) != 0) return -EAGAIN ;
-	
 	
 	// initialize variables for traversal
 	data = kmalloc(sizeof(struct prinfo)*num_to_read, GFP_KERNEL);
