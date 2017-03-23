@@ -2,7 +2,7 @@
 #include <stdio.h>
 #include <unistd.h>
 #include <sys/types.h>
-#include<errno.h>
+#include <errno.h>
 
 #define NR_MAX 100	//the number of process to be printed
 
@@ -65,6 +65,8 @@ int main () {
 		fprintf(stderr, "Something wrong!! lol. Error code : %d\n", errno);
         return 1;
     }	
+	
+	//print process tree
 	print_ptree_prinfo(buf, nr);	
 	free(buf);
 	
