@@ -5,7 +5,6 @@
 #include <linux/slab.h>
 #include <linux/uaccess.h>
 
-// TODO please explain what this is
 #define TASK_PID_MAX 8388608
 
 struct SearchResult {
@@ -24,16 +23,16 @@ int sys_ptree(struct prinfo * buf, int *nr) { // buf = point of proc. data,  nr 
 	struct SearchResult result;
 	struct prinfo *data;
 
-	printk(KERN_DEBUG "[ptree] running...\n");
-
 	if( buf == NULL || nr == NULL) return -EINVAL;
-	// EFAULT : if buf or nr are outside the accessible address space.
- 
-	//printk(KERN_DEBUG "copy from user\n");
-	if(copy_from_user(&num_to_read, nr, sizeof(int)) != 0) return -EAGAIN ;
 	
+	// EFAULT : if buf or nr are outside the accessible address space.
 	if(!access_ok(VERIFY_READ, nr, sizeof(int))) return -EFAULT;
 	if(!access_ok(VERIFY_READ, buf, sizeof(struct prinfo) * num_to_read)) return -EFAULT;
+	
+	//EINVAL : # of entires is less than one
+	if(*nr <1) return -EINVAL; 
+	
+	if(copy_from_user(&num_to_read, nr, sizeof(int)) != 0) return -EAGAIN ;
 	
 	// initialize variables for traversal
 	data = kmalloc(sizeof(struct prinfo)*num_to_read, GFP_KERNEL);
@@ -42,22 +41,18 @@ int sys_ptree(struct prinfo * buf, int *nr) { // buf = point of proc. data,  nr 
 	result.max_size = num_to_read;
 	result.count = 0;
 	
-	//printk(KERN_DEBUG "tasklist locking...\n");
 	// lock untii traversal completes, to prevent data structures from changing
 	read_lock(&tasklist_lock);
-	//printk(KERN_DEBUG "start traversal\n");
+	
 	search_process_preorder(&init_task, &process_count, &result);
 	read_unlock(&tasklist_lock);
-	//printk(KERN_DEBUG "tasklist unlocked\n");
 
-	//printk(KERN_DEBUG "copy to user\n");
 	if(copy_to_user(nr, &(result.count), sizeof(int)) != 0) return -EAGAIN;
 	if(copy_to_user(buf, result.data, (result.count) * sizeof(struct prinfo)) !=0 ) return -EAGAIN;
 
 	kfree(data);
 
-	printk(KERN_DEBUG "[ptree] search complete. Exiting...\n");
-
+	//when the number of entries is less then one.
 	return process_count;
 }
 
@@ -71,9 +66,7 @@ void search_process_preorder(struct task_struct* task, int* count, struct Search
 	struct task_struct* child;
 	struct list_head* child_list;
 	
-	//printk(KERN_DEBUG "search_process_preorder: pid = %lu, comm = %s\n", task->pid, task->comm);
-
-  push_task(task, result);
+  	push_task(task, result);
 	(*count)++;
 	// recursively search for every child
 	list_for_each(child_list, &task->children) {
@@ -88,7 +81,6 @@ void push_task(struct task_struct* task, struct SearchResult* result) {
 	struct prinfo *data;
 	struct task_struct *child_first = NULL, *sibling_next = NULL;
 
-	//printk(KERN_DEBUG "push_task called\n");
 	if (result->count >= result->max_size) return;
 
 	data = result->data;
