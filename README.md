@@ -69,7 +69,7 @@ to
 Total number of system calls must be a multiplication of 4.
 
 ### 2. assign system call number
-in file: "arch/arm/include/asm/unistd.h"
+in file: "arch/arm/include/uapi/asm/unistd.h"
 add
 ```c
 #define __NR_myfunc      (__NR_SYSCALL_BASE+ #) 
