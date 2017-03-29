@@ -2,7 +2,6 @@
 #include <linux/sched.h>
 #include <linux/slab.h>
 #include <linux/uaccess.h>
-#include <linux/spinlock.h>
 
 int isValid(int now, int degree, int range){
 	int v = 0;
