@@ -32,7 +32,7 @@ int sys_set_rotation(int degree) {
 }
 
 int isValid(int now, int degree, int range){
-	int v = 0;
+	int v = now;
 	int a = (360 + degree + range)%360;
 	int b = (360 + degree - range)%360;
 	if((a-v)*(b-v) <0) return 1;
@@ -41,7 +41,7 @@ int isValid(int now, int degree, int range){
 
 int isZero(int degree,int range,int target) { //target 0 : read, 1 : write
 	int i;
-	for(i = degree-range; i < degree+range ; i++) {
+	for(i = degree-range; i <= degree+range ; i++) {
 		if(target ==1 && write_locked[1] != 0) return 0;
 		else if(read_locked[1] != 0) return 0;
 	}
@@ -53,7 +53,7 @@ int sys_rotlock_read(int degree, int range) {
 	int i;
 	while(!(isValid(_degree,degree,range) && isZero(degree, range,1))){
 
-	printk(KERN_DEBUG "HOLD\n");
+		printk(KERN_DEBUG "HOLD\n");
 		prepare_to_wait(&read_q,&wait,TASK_INTERRUPTIBLE);
 		schedule();
 		finish_wait(&read_q,&wait);
