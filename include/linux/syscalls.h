@@ -846,4 +846,11 @@ asmlinkage long sys_process_vm_writev(pid_t pid,
 asmlinkage long sys_kcmp(pid_t pid1, pid_t pid2, int type,
 			 unsigned long idx1, unsigned long idx2);
 asmlinkage long sys_finit_module(int fd, const char __user *uargs, int flags);
+
+asmlinkage int set_rotation(int degree);
+//asmlinkage int rotlock_read (int degree, int range);
+//asmlinkage int rotlock_write(int degree, int range);
+//asmlinkage int rotunlock_read(int degree, int range);
+//asmlinkage int rotunlock_write(int degree, int range);
+
 #endif
