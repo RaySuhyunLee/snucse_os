@@ -410,7 +410,8 @@
 #define __NR_rotlock_read 		(__NR_SYSCALL_BASE+381)
 #define __NR_rotlock_write 		(__NR_SYSCALL_BASE+382)
 #define __NR_rotunlock_read 	(__NR_SYSCALL_BASE+383)
-#define __NR_rotunlock_write 	(__NR_SYSCALL_BASE+384)
+/* 384 was called from somewhere */
+#define __NR_rotunlock_write 	(__NR_SYSCALL_BASE+385)
 
 
 /*

@@ -393,6 +393,7 @@
 		CALL(sys_rotlock_read)
 		CALL(sys_rotlock_write)
 		CALL(sys_rotunlock_read)
+		CALL(sys_ni_syscall)		/* was sys_break */
 		CALL(sys_rotunlock_write)
 
 #ifndef syscalls_counted
