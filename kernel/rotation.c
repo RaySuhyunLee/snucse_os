@@ -138,5 +138,6 @@ int sys_rotunlock_write(int degree, int range) {
 		deg = convertDegree(i);
 		write_locked[deg]--;
 	}
+	spin_unlock(&locker);
 	return 0;
 }
