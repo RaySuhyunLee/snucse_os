@@ -12,21 +12,25 @@ int main (int start) {
 	int for_lock;
 	int for_unlock;
 	int arg = start;
+	char str[15];
 	
 	while (1) {
 	
-	//use write_lock
-	for_lock = syscall(rotlock_write, 90, 90);
-	
-	f = fopen("integer", "w");
-	fputs(start, f);
-	fclose(f);
-	
-	//use write_unlock
-	for_unlock = syscall(rotunlock_write, 90, 90);
-	
-	arg++;
+		//use write_lock
+		for_lock = syscall(382, 90, 90);
+		
+		sprintf(str, "%d", arg);
+		f = fopen("integer", "w");
+		fputs(str, f);
+		fclose(f);
+
+		printf("write: %s", str);
+		
+		//use write_unlock
+		for_unlock = syscall(385, 90, 90);
+		
+		arg++;
 	}
-	
+		
 	return 0;
 }
