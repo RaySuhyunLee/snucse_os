@@ -24,11 +24,10 @@ int main (int start) {
 		fputs(str, f);
 		fclose(f);
 
-		printf("write: %s", str);
-		
 		//use write_unlock
 		for_unlock = syscall(385, 90, 90);
-		
+
+		printf("selector: %s", str);
 		arg++;
 	}
 		

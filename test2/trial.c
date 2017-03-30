@@ -12,35 +12,34 @@ int main (int start) {
 	int for_lock;
 	int for_unlock;
 	int arg = start;
-	int read_int;
 	int tmp;
 	int i;
+	int scan_ret;
 	
 	while (1) {
 	
-		//use write_lock
-		for_lock = syscall(382, 90, 90);
+		//use read_lock
+		for_lock = syscall(381, 90, 90);
 		
-		f = fopen("integer", "a+");
-		fscanf(f, "%d", &tmp);
-		//fputs(start, f);
-		//fclose(f);
+		f = fopen("integer", "r");
+		scan_ret = fscanf(f, "%d", &tmp);
+		fclose(f);
 		
 		for(i=2;i<=tmp;i++) {
 			if(tmp % i == 0) {
-				fprintf(f,"%d ",i);
+				printf("%d ",i);
 				tmp = tmp / i;
-				if(tmp % i == 0) fprintf(f,"* ");
+				if(tmp % i == 0) printf("* ");
 				else if(tmp % i != 0) {
 					if(tmp > i)
-					fprintf(f,"* ");
+					printf("* ");
 				}
 				i = 1;
 			}
 		}
 		
-		//use write_unlock
-		for_unlock = syscall(385, 90, 90);
+		//use read_unlock
+		for_unlock = syscall(383, 90, 90);
 		
 		arg++;
 	}
