@@ -37,7 +37,7 @@ int convertDegree(int n) {
 }
 
 int isValid(int now, int degree, int range){
-	int v = now; //convert rangea.
+	int v = now; //convert range.
 	int max = degree + range;
 	int min = degree - range;
 	if ( v <= max) {
@@ -60,21 +60,21 @@ int isZero(int degree,int range,int target) { //target 0 : read, 1 : write
 
 int sys_rotlock_read(int degree, int range) {
 	DEFINE_WAIT(wait);
-	printk(KERN_DEBUG "BEFORE HOLD\n");
+	printk(KERN_DEBUG "rotlock_read\n");
 	int i,deg;
 	while(!(isValid(_degree,degree,range) && isZero(degree, range,1))){
 
-		printk(KERN_DEBUG "HOLD\n");
+//		printk(KERN_DEBUG "HOLD\n");
 		prepare_to_wait(&read_q,&wait,TASK_INTERRUPTIBLE);
 		schedule();
 		finish_wait(&read_q,&wait);
 	}
 
-	printk(KERN_DEBUG "AFTER HOLD\n");
+//	printk(KERN_DEBUG "AFTER HOLD\n");
 	//Increment the number of locks at each degree.
 	spin_lock(&locker);
 
-	printk(KERN_DEBUG "spin_lock\n");
+//	printk(KERN_DEBUG "spin_lock\n");
 	for(i = degree-range ; i <= degree+range ; i++) {
 		deg = convertDegree(i);
 		read_locked[deg]++;
@@ -84,18 +84,18 @@ int sys_rotlock_read(int degree, int range) {
 }
 
 int sys_rotlock_write(int degree, int range) {
-	printk(KERN_DEBUG "W_BEFORE_HOLD\n");
+	printk(KERN_DEBUG "rotlock_write\n");
 	DEFINE_WAIT(wait);
 	int i,deg;
 	while(!(isValid(_degree,degree,range) && isZero(degree, range,1) && isZero(degree,range,0))){
-	printk(KERN_DEBUG "W_HOLD\n");
+//	printk(KERN_DEBUG "W_HOLD\n");
 		prepare_to_wait(&write_q,&wait,TASK_INTERRUPTIBLE);
 		schedule();
 		finish_wait(&write_q,&wait);
 	}
-	printk(KERN_DEBUG "W_AFTER HOLD!\n");
+//	printk(KERN_DEBUG "W_AFTER HOLD!\n");
 	spin_lock(&locker);
-	printk(KERN_DEBUG "W_spin_lock\n");
+//	printk(KERN_DEBUG "W_spin_lock\n");
 	for(i = degree-range ; i <= degree+range ; i++) {
 		deg = convertDegree(i);
 		write_locked[deg]++;
@@ -105,6 +105,7 @@ int sys_rotlock_write(int degree, int range) {
 }
 
 int sys_rotunlock_read(int degree, int range) {
+	printk(KERN_DEBUG "rotunlock_read\n");
 	DEFINE_WAIT(wait);
 	int i,deg;
 	while(!(isValid(_degree,degree,range))){
@@ -124,6 +125,7 @@ int sys_rotunlock_read(int degree, int range) {
 
 
 int sys_rotunlock_write(int degree, int range) {
+	printk(KERN_DEBUG "rotunlock_write\n");
 	DEFINE_WAIT(wait);
 	int i,deg;
 	while(!(isValid(_degree,degree,range))){
