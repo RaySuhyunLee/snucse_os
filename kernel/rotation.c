@@ -30,74 +30,84 @@ int sys_set_rotation(int degree) {
 
 	return 1;
 }
+int convertDegree(int n) {
+	if(n < 0) return n + 360;
+	if(n >=360) return n - 360;
+	return n;
+}
 
 int isValid(int now, int degree, int range){
-	int v = now;
-	int a = (360 + degree + range)%360;
-	int b = (360 + degree - range)%360;
-	if((a-v)*(b-v) <0) return 1;
-	return 0;
+	int v = now; //convert range.
+	int max = degree + range;
+	int min = degree - range;
+	if ( v <= max) {
+		if( min <= v) return 1; // min-v-max
+		else return (v <= max-360);//v-min-max
+
+	}
+	else return  (min + 360 <= v);//min-max-v
 }
+
 
 int isZero(int degree,int range,int target) { //target 0 : read, 1 : write
 	int i;
 	for(i = degree-range; i <= degree+range ; i++) {
-		if(target ==1 && write_locked[1] != 0) return 0;
-		else if(read_locked[1] != 0) return 0;
+		if(target ==1 && write_locked[convertDegree(i)] != 0) return 0;
+		else if(target == 0 && read_locked[convertDegree(i)] != 0) return 0;
 	}
 	return 1;
 }
+
 int sys_rotlock_read(int degree, int range) {
 	DEFINE_WAIT(wait);
-	printk(KERN_DEBUG "BEFORE HOLD\n");
-	int i;
+	printk(KERN_DEBUG "rotlock_read\n");
+	int i,deg;
 	while(!(isValid(_degree,degree,range) && isZero(degree, range,1))){
 
-		printk(KERN_DEBUG "HOLD\n");
+//		printk(KERN_DEBUG "HOLD\n");
 		prepare_to_wait(&read_q,&wait,TASK_INTERRUPTIBLE);
 		schedule();
 		finish_wait(&read_q,&wait);
 	}
 
-	printk(KERN_DEBUG "AFTER HOLD\n");
+//	printk(KERN_DEBUG "AFTER HOLD\n");
 	//Increment the number of locks at each degree.
 	spin_lock(&locker);
 
-	printk(KERN_DEBUG "spin_lock\n");
+//	printk(KERN_DEBUG "spin_lock\n");
 	for(i = degree-range ; i <= degree+range ; i++) {
-		if( i <0) read_locked[i+360]++;
-		else if( i>=360) read_locked[i-360]++;
-		else read_locked[i]++;
+		deg = convertDegree(i);
+		read_locked[deg]++;
 	}
 	spin_unlock(&locker);
 	return 0;
 }
 
 int sys_rotlock_write(int degree, int range) {
-	printk(KERN_DEBUG "W_BEFORE_HOLD\n");
+	printk(KERN_DEBUG "rotlock_write\n");
 	DEFINE_WAIT(wait);
-	int i,j;
+	int i,deg;
 	while(!(isValid(_degree,degree,range) && isZero(degree, range,1) && isZero(degree,range,0))){
-	printk(KERN_DEBUG "W_HOLD\n");
+//	printk(KERN_DEBUG "W_HOLD\n");
 		prepare_to_wait(&write_q,&wait,TASK_INTERRUPTIBLE);
 		schedule();
 		finish_wait(&write_q,&wait);
 	}
-	printk(KERN_DEBUG "W_AFTER HOLD\n");
+//	printk(KERN_DEBUG "W_AFTER HOLD!\n");
 	spin_lock(&locker);
-	printk(KERN_DEBUG "write_spin_lock\n");
+//	printk(KERN_DEBUG "W_spin_lock\n");
 	for(i = degree-range ; i <= degree+range ; i++) {
-		if( i <0) write_locked[i+360]++;
-		else if( i>=360) write_locked[i-360]++;
-		else write_locked[i]++;
+		deg = convertDegree(i);
+		write_locked[deg]++;
 	}
 	spin_unlock(&locker);
 	return 0;
 }
 
 int sys_rotunlock_read(int degree, int range) {
+	printk(KERN_DEBUG "rotunlock_read\n");
 	DEFINE_WAIT(wait);
-	int i;
+	int i,deg;
 	while(!(isValid(_degree,degree,range))){
 		prepare_to_wait(&read_q,&wait,TASK_INTERRUPTIBLE);
 		schedule();
@@ -106,9 +116,8 @@ int sys_rotunlock_read(int degree, int range) {
 	spin_lock_init(&locker); 
 	spin_lock(&locker);
 	for(i = degree-range ; i <= degree+range ; i++) {
-		if( i <0) read_locked[i+360]--;
-		else if( i>=360) read_locked[i-360]--;
-		else read_locked[i]--;
+		deg = convertDegree(i);
+		read_locked[deg]--;
 	}
 	spin_unlock(&locker);
 	return 0;
@@ -116,8 +125,9 @@ int sys_rotunlock_read(int degree, int range) {
 
 
 int sys_rotunlock_write(int degree, int range) {
+	printk(KERN_DEBUG "rotunlock_write\n");
 	DEFINE_WAIT(wait);
-	int i;
+	int i,deg;
 	while(!(isValid(_degree,degree,range))){
 		prepare_to_wait(&write_q,&wait,TASK_INTERRUPTIBLE);
 		schedule();
@@ -127,9 +137,9 @@ int sys_rotunlock_write(int degree, int range) {
 	//Increment the number of locks at each degree.
 	spin_lock(&locker);
 	for(i = degree-range ; i <= degree+range ; i++) {
-		if( i <0) write_locked[i+360]--;
-		else if( i>=360) write_locked[i-360]--;
-		else write_locked[i]--;
+		deg = convertDegree(i);
+		write_locked[deg]--;
 	}
+	spin_unlock(&locker);
 	return 0;
 }
