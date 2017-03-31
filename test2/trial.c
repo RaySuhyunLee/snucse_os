@@ -4,45 +4,48 @@
 #include <sys/types.h>
 #include <errno.h>
 #include <signal.h>
-#include <linux/rotation.h>
+//#include <linux/rotation.h>
 
-int main (int start) {
+int main (int argc, char* argv[]){
 	
 	FILE *f;
 	int for_lock;
 	int for_unlock;
-	int arg = start;
+	char *str = argv[1];
+	int arg=0;
 	int tmp;
-	int i;
+	int n;
+	int i=0;
 	int scan_ret;
+	int flag ;
+//	while(*(str+i) != NULL) arg = arg*10 + (*(str+ (i++))-'0');
 	
 	while (1) {
 	
 		//use read_lock
-		for_lock = syscall(381, 90, 90);
+		for_lock = syscall(381, 120, 30);
 		
 		f = fopen("integer", "r");
 		scan_ret = fscanf(f, "%d", &tmp);
-		fclose(f);
-		
-		for(i=2;i<=tmp;i++) {
-			if(tmp % i == 0) {
-				printf("%d ",i);
-				tmp = tmp / i;
-				if(tmp % i == 0) printf("* ");
-				else if(tmp % i != 0) {
-					if(tmp > i)
-					printf("* ");
+		printf("trial_%s: %d = ", str, tmp);
+		flag= 0;
+		n = tmp;
+		if(n == 1) printf("%d\n",n);
+		else {
+			for(i = 2 ; i <= tmp; i++) { // it need to convert Trial and Division Method
+				if(n%i == 0) {
+					if(flag) printf(" * ");
+					n/= i;
+					printf("%d",i--);
+					flag = 1;
 				}
-				i = 1;
 			}
 		}
-		
+		printf("\n");
+		fclose(f);
 		//use read_unlock
-		for_unlock = syscall(383, 90, 90);
-		
-		arg++;
+		for_unlock = syscall(383, 120, 30);
+		sleep(1);
 	}
-		
 	return 0;
 }
