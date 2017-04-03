@@ -36,7 +36,7 @@ int convertDegree(int n) {
 	return n;
 }
 
-int isValid(int now, int degree, int range){
+int isInRange(int now, int degree, int range){
 	int v = now; //convert range.
 	int max = degree + range;
 	int min = degree - range;
@@ -49,7 +49,7 @@ int isValid(int now, int degree, int range){
 }
 
 
-int isZero(int degree,int range,int target) { //target 0 : read, 1 : write
+int isLockable(int degree,int range,int target) { //target 0 : read, 1 : write
 	int i;
 	for(i = degree-range; i <= degree+range ; i++) {
 		if(target ==1 && write_locked[convertDegree(i)] != 0) return 0;
@@ -62,7 +62,7 @@ int sys_rotlock_read(int degree, int range) {
 	DEFINE_WAIT(wait);
 	printk(KERN_DEBUG "rotlock_read\n");
 	int i,deg;
-	while(!(isValid(_degree,degree,range) && isZero(degree, range,1))){
+	while(!(isInRange(_degree,degree,range) && isLockable(degree, range,1))){
 
 //		printk(KERN_DEBUG "HOLD\n");
 		prepare_to_wait(&read_q,&wait,TASK_INTERRUPTIBLE);
@@ -87,7 +87,7 @@ int sys_rotlock_write(int degree, int range) {
 	printk(KERN_DEBUG "rotlock_write\n");
 	DEFINE_WAIT(wait);
 	int i,deg;
-	while(!(isValid(_degree,degree,range) && isZero(degree, range,1) && isZero(degree,range,0))){
+	while(!(isInRange(_degree,degree,range) && isLockable(degree, range,1) && isZero(degree,range,0))){
 //	printk(KERN_DEBUG "W_HOLD\n");
 		prepare_to_wait(&write_q,&wait,TASK_INTERRUPTIBLE);
 		schedule();
@@ -108,7 +108,7 @@ int sys_rotunlock_read(int degree, int range) {
 	printk(KERN_DEBUG "rotunlock_read\n");
 	DEFINE_WAIT(wait);
 	int i,deg;
-	while(!(isValid(_degree,degree,range))){
+	while(!(isInRange(_degree,degree,range))){
 		prepare_to_wait(&read_q,&wait,TASK_INTERRUPTIBLE);
 		schedule();
 		finish_wait(&read_q,&wait);
@@ -128,7 +128,7 @@ int sys_rotunlock_write(int degree, int range) {
 	printk(KERN_DEBUG "rotunlock_write\n");
 	DEFINE_WAIT(wait);
 	int i,deg;
-	while(!(isValid(_degree,degree,range))){
+	while(!(isInRange(_degree,degree,range))){
 		prepare_to_wait(&write_q,&wait,TASK_INTERRUPTIBLE);
 		schedule();
 		finish_wait(&write_q,&wait);
