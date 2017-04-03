@@ -6,6 +6,7 @@
 #include <linux/sched.h>
 #include <linux/uaccess.h>
 #include <linux/slab.h>
+#include <uapi/asm-generic/errno-base.h>
 
 int _degree;	// current degree
 DEFINE_SPINLOCK(degree_lock);
@@ -19,27 +20,35 @@ DECLARE_WAIT_QUEUE_HEAD(write_q);
 
 int sys_set_rotation(int degree) {
 	spin_lock(&degree_lock);
+	if( degree <0 || degree >= 360) {
+			spin_unlock(&degree_lock);
+			return -EINVAL;
+	}
 	_degree = degree;
 	spin_unlock(&degree_lock);
 	printk(KERN_DEBUG "set_rotation to %d\n", _degree);
 
 	wake_up(&write_q);
-	printk(KERN_DEBUG "wake up all write lockers\n");
+//	printk(KERN_DEBUG "wake up all write lockers\n");
 	wake_up(&read_q);
-	printk(KERN_DEBUG "wake up all read lockers\n");
+//	printk(KERN_DEBUG "wake up all read lockers\n");
 
 	return 1;
 }
+/*
 int convertDegree(int n) {
 	if(n < 0) return n + 360;
 	if(n >=360) return n - 360;
 	return n;
 }
+*/
 
 int isInRange(int now, int degree, int range){
+	spin_lock(&degree_lock);
 	int v = now; //convert range.
 	int max = degree + range;
 	int min = degree - range;
+	spin_unlock(&degree_lock);
 	if ( v <= max) {
 		if( min <= v) return 1; // min-v-max
 		else return (v <= max-360);//v-min-max
@@ -51,14 +60,23 @@ int isInRange(int now, int degree, int range){
 
 int isLockable(int degree,int range,int target) { //target 0 : read, 1 : write
 	int i;
+	spin_lock(&degree_lock);
 	for(i = degree-range; i <= degree+range ; i++) {
-		if(target ==1 && write_locked[convertDegree(i)] != 0) return 0;
-		else if(target == 0 && read_locked[convertDegree(i)] != 0) return 0;
+		if(target ==1 && write_locked[convertDegree(i)] != 0) {
+			spin_unlcok(&degree_lock);
+			return 0;
+		}
+		else if(target == 0 && read_locked[convertDegree(i)] != 0) {
+			spin_unlock(&degree_lock);
+			return 0;
+		}
 	}
+	spin_unlock(&degree_lock);
 	return 1;
 }
 
 int sys_rotlock_read(int degree, int range) {
+	if(degree <0 || degree >=360 || range <=0 || range>= 180) return -1;
 	DEFINE_WAIT(wait);
 	printk(KERN_DEBUG "rotlock_read\n");
 	int i,deg;
@@ -84,6 +102,7 @@ int sys_rotlock_read(int degree, int range) {
 }
 
 int sys_rotlock_write(int degree, int range) {
+	if(degree <0 || degree >=360 || range <=0 || range>= 180) return -1;
 	printk(KERN_DEBUG "rotlock_write\n");
 	DEFINE_WAIT(wait);
 	int i,deg;
@@ -105,6 +124,7 @@ int sys_rotlock_write(int degree, int range) {
 }
 
 int sys_rotunlock_read(int degree, int range) {
+	if(degree <0 || degree >=360 || range <=0 || range>= 180) return -1;
 	printk(KERN_DEBUG "rotunlock_read\n");
 	DEFINE_WAIT(wait);
 	int i,deg;
@@ -125,6 +145,7 @@ int sys_rotunlock_read(int degree, int range) {
 
 
 int sys_rotunlock_write(int degree, int range) {
+	if(degree <0 || degree >=360 || range <=0 || range>= 180) return -1;
 	printk(KERN_DEBUG "rotunlock_write\n");
 	DEFINE_WAIT(wait);
 	int i,deg;
