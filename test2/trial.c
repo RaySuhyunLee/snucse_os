@@ -6,6 +6,13 @@
 #include <signal.h>
 //#include <linux/rotation.h>
 
+
+static int run_flag= 1;
+
+void interruptHandler (int a){
+	run_flag = 0;
+}
+
 int main (int argc, char* argv[]){
 	
 	FILE *f;
@@ -19,8 +26,8 @@ int main (int argc, char* argv[]){
 	int scan_ret;
 	int flag ;
 //	while(*(str+i) != NULL) arg = arg*10 + (*(str+ (i++))-'0');
-	
-	while (1) {
+	signal(SIGINT, interruptHandler);
+	while (run_flag) {
 	
 		//use read_lock
 		for_lock = syscall(381, 120, 30);
@@ -47,5 +54,6 @@ int main (int argc, char* argv[]){
 		for_unlock = syscall(383, 120, 30);
 		sleep(1);
 	}
+	printf("THEEND\n\n\n\n\n\n");
 	return 0;
 }

@@ -5,7 +5,11 @@
 #include <errno.h>
 #include <signal.h>
 //#include <linux/rotation.h>
+static int run_flag= 1;
 
+void interruptHandler (int a){
+	run_flag = 0;
+}
 int main (int argc, char *argv[]) {
 		FILE *f;
 		int for_lock;
@@ -15,7 +19,8 @@ int main (int argc, char *argv[]) {
 		char str[15];
 		int i = 0;
 		while(*(s+i) != NULL) arg = arg*10 + (*(s+(i++))-'0');
-		while (1) {
+		signal(SIGINT, interruptHandler);
+		while (run_flag) {
 
 			//use write_lock
 			for_lock = syscall(382, 90, 30);
