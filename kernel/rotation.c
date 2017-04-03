@@ -35,19 +35,20 @@ int sys_set_rotation(int degree) {
 
 	return 1;
 }
-/*
+
 int convertDegree(int n) {
 	if(n < 0) return n + 360;
 	if(n >=360) return n - 360;
 	return n;
 }
-*/
+
 
 int isInRange(int now, int degree, int range){
+	int v,max,min;
 	spin_lock(&degree_lock);
-	int v = now; //convert range.
-	int max = degree + range;
-	int min = degree - range;
+	v = now; //convert range.
+	max = degree + range;
+	min = degree - range;
 	spin_unlock(&degree_lock);
 	if ( v <= max) {
 		if( min <= v) return 1; // min-v-max
@@ -60,19 +61,20 @@ int isInRange(int now, int degree, int range){
 
 int isLockable(int degree,int range,int target) { //target 0 : read, 1 : write
 	int i;
+	int flag = 1;
 	spin_lock(&degree_lock);
 	for(i = degree-range; i <= degree+range ; i++) {
 		if(target ==1 && write_locked[convertDegree(i)] != 0) {
-			spin_unlcok(&degree_lock);
-			return 0;
+			flag= 0;
+			break;
 		}
-		else if(target == 0 && read_locked[convertDegree(i)] != 0) {
-			spin_unlock(&degree_lock);
-			return 0;
+		else if(target == 0 && read_locked[convertDegree(i)] != 0) {		
+			flag =0;
+			break;
 		}
 	}
 	spin_unlock(&degree_lock);
-	return 1;
+	return flag;
 }
 
 int sys_rotlock_read(int degree, int range) {
@@ -106,7 +108,7 @@ int sys_rotlock_write(int degree, int range) {
 	printk(KERN_DEBUG "rotlock_write\n");
 	DEFINE_WAIT(wait);
 	int i,deg;
-	while(!(isInRange(_degree,degree,range) && isLockable(degree, range,1) && isZero(degree,range,0))){
+	while(!(isInRange(_degree,degree,range) && isLockable(degree, range,1) && isLockable(degree,range,0))){
 //	printk(KERN_DEBUG "W_HOLD\n");
 		prepare_to_wait(&write_q,&wait,TASK_INTERRUPTIBLE);
 		schedule();
