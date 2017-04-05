@@ -26,7 +26,7 @@ int main (int argc, char* argv[]){
 	int scan_ret;
 	int flag ;
 //	while(*(str+i) != NULL) arg = arg*10 + (*(str+ (i++))-'0');
-	signal(SIGINT, interruptHandler);
+	signal(SIGINT, SIG_DFL);
 	while (run_flag) {
 	
 		//use read_lock

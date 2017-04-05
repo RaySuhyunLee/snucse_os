@@ -19,8 +19,8 @@ int main (int argc, char *argv[]) {
 		char str[15];
 		int i = 0;
 		while(*(s+i) != NULL) arg = arg*10 + (*(s+(i++))-'0');
-		signal(SIGINT, interruptHandler);
-		while (run_flag) {
+		signal(SIGINT, SIG_DFL);
+		while (1) {
 
 			//use write_lock
 			for_lock = syscall(382, 90, 30);
