@@ -8,6 +8,7 @@
 #include <linux/slab.h>
 #include <uapi/asm-generic/errno-base.h>
 #include <linux/list.h>
+#include <linux/signal.h>
 
 int _degree;	// current degree
 DEFINE_SPINLOCK(degree_lock);
@@ -169,6 +170,8 @@ int sys_rotlock_read(int degree, int range) {
 	DEFINE_WAIT(wait);
 	int i,deg;
 
+
+	
 	if(degree <0 || degree >=360 || range <=0 || range>= 180) return -1;
 
 	printk(KERN_DEBUG "rotlock_read\n");
@@ -199,6 +202,8 @@ int sys_rotlock_write(int degree, int range) {
 	int i,deg;
 	DEFINE_WAIT(wait);
 
+
+	
 	if(degree <0 || degree >=360 || range <=0 || range>= 180) return -1;
 	printk(KERN_DEBUG "rotlock_write\n");
 
@@ -225,6 +230,8 @@ int sys_rotunlock_read(int degree, int range) {
 	int i,deg;
 	DEFINE_WAIT(wait);
 
+
+	
 	if(degree <0 || degree >=360 || range <=0 || range>= 180) return -1;
 	printk(KERN_DEBUG "rotunlock_read\n");
 	
@@ -238,7 +245,7 @@ int sys_rotunlock_read(int degree, int range) {
 	for(i = degree-range ; i <= degree+range ; i++) {
 		deg = convertDegree(i);
 		read_locked[deg]--;
-	}
+}
 	spin_unlock(&locker);
 	return 0;
 }
@@ -248,6 +255,8 @@ int sys_rotunlock_write(int degree, int range) {
 	int i,deg;
 	DEFINE_WAIT(wait);
 
+
+	
 	if(degree <0 || degree >=360 || range <=0 || range>= 180) return -1;
 	printk(KERN_DEBUG "rotunlock_write\n");
 
@@ -265,4 +274,47 @@ int sys_rotunlock_write(int degree, int range) {
 	}
 	spin_unlock(&locker);
 	return 0;
+	
 }
+int remove_bound_exit(struct list_head *bounds) {
+	struct bound* bound_buf;
+	list_for_each_entry(bound_buf, bounds, list) {
+		{
+			printk(KERN_DEBUG "bound removed(%d, %d)\n", bound_buf->degree, bound_buf->range);
+			list_del(&bound_buf->list);
+			kfree(bound_buf);
+		}
+	}
+	return 0;
+}
+int remove_task_exit(struct list_head *tasks, int pid) {
+	struct task_info *task_buf;
+	int status = 0;
+	list_for_each_entry(task_buf, tasks, list) {
+		if (task_buf->pid == pid) {
+			remove_bound_exit(&task_buf->bounds);
+
+			if (list_empty(&task_buf->bounds)) {
+				printk(KERN_DEBUG "task removed(pid: %d)\n", task_buf->pid);
+				list_del(&task_buf->list);
+				kfree(task_buf);
+				status = 1;
+			}
+		}
+	}
+	
+	return status;
+}
+
+void exit_rotlock (void) {
+	int i;
+	printk(KERN_DEBUG "DIABLO3 is GOD GAME");
+	spin_lock(&locker);
+	remove_task_exit(&reader_list, current -> pid);
+	remove_task_exit(&writer_list, current -> pid);
+	//do_exit(0);
+	spin_unlock(&locker);
+}
+
+//do_exit(exit_rotlock);
+//signal(SIGINT, exit_rotlock);
