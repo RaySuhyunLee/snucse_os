@@ -62,6 +62,45 @@ void put_task(int pid, int degree, int range) {
 	printk(KERN_DEBUG "new task added(pid: %d)\n", newTask->pid);
 }
 
+/*
+ * if pop succeeds(if task exists) return 1
+ * else return 0
+ */
+int pop_bound(int degree, int range, struct list_head *bounds) {
+	struct bound *bound_buf;
+	list_for_each_entry(bound_buf, bounds, list) {
+		if (bound_buf->degree == degree && bound_buf->range == range) {
+			printk(KERN_DEBUG "bound removed(%d, %d)\n", bound_buf->degree, bound_buf->range);
+			list_del(&bound_buf->list);
+			kfree(bound_buf);
+			return 1;
+		}
+	}
+	return 0;
+}
+
+/*
+ * if pop succeeds(if task exists) return 1
+ * else return 0
+ */
+int pop_task(int pid, int degree, int range) {
+	struct task_info *task_buf;
+	int status = 0;
+	list_for_each_entry(task_buf, &task_infos, list) {
+		if (task_buf->pid == pid) {
+			pop_bound(degree, range, &task_buf->bounds);
+			if (list_empty(&task_buf->bounds)) {
+				printk(KERN_DEBUG "task removed(pid: %d)\n", task_buf->pid);
+				list_del(&task_buf->list);
+				kfree(task_buf);
+				status = 1;
+			}
+			break;
+		}
+	}
+	return status;
+}
+
 
 int sys_set_rotation(int degree) {
 
@@ -162,12 +201,10 @@ int sys_rotlock_write(int degree, int range) {
 	printk(KERN_DEBUG "rotlock_write\n");
 
 	while(!(isInRange(degree,range) && isLockable(degree, range,1) && isLockable(degree,range,0))){
-//	printk(KERN_DEBUG "W_HOLD\n");
 		prepare_to_wait(&write_q,&wait,TASK_INTERRUPTIBLE);
 		schedule();
 		finish_wait(&write_q,&wait);
 	}
-//	printk(KERN_DEBUG "W_AFTER HOLD!\n");
 	spin_lock(&locker);
 //	printk(KERN_DEBUG "W_spin_lock\n");
 	for(i = degree-range ; i <= degree+range ; i++) {
@@ -184,13 +221,14 @@ int sys_rotunlock_read(int degree, int range) {
 
 	if(degree <0 || degree >=360 || range <=0 || range>= 180) return -1;
 	printk(KERN_DEBUG "rotunlock_read\n");
-	while(!(isInRange(degree,range))){
-		prepare_to_wait(&read_q,&wait,TASK_INTERRUPTIBLE);
-		schedule();
-		finish_wait(&read_q,&wait);
-	}
-	spin_lock_init(&locker); 
+	
 	spin_lock(&locker);
+	// check if degree and range exists for given pid
+	if (pop_task(current->pid, degree, range) == 0) {
+		spin_unlock(&locker);
+		return 0; // TODO proper error handling?
+	}
+
 	for(i = degree-range ; i <= degree+range ; i++) {
 		deg = convertDegree(i);
 		read_locked[deg]--;
@@ -207,12 +245,6 @@ int sys_rotunlock_write(int degree, int range) {
 	if(degree <0 || degree >=360 || range <=0 || range>= 180) return -1;
 	printk(KERN_DEBUG "rotunlock_write\n");
 
-	while(!(isInRange(degree,range))){
-		prepare_to_wait(&write_q,&wait,TASK_INTERRUPTIBLE);
-		schedule();
-		finish_wait(&write_q,&wait);
-	}
-	spin_lock_init(&locker); 
 	//Increment the number of locks at each degree.
 	spin_lock(&locker);
 	for(i = degree-range ; i <= degree+range ; i++) {
