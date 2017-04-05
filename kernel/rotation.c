@@ -12,8 +12,10 @@
 int _degree;	// current degree
 DEFINE_SPINLOCK(degree_lock);
 
-int read_locked[360];
-int write_locked[360];
+int read_locked[360]= {0,};
+int write_locked[360] = {0,};
+int write_occupied[360] = {0,};
+
 DEFINE_SPINLOCK(locker);
 
 DECLARE_WAIT_QUEUE_HEAD(read_q);
@@ -34,25 +36,28 @@ struct bound {
 	struct list_head list;
 };
 
+//Should these function have locker (&lock);
 void put_bound(struct list_head *bounds,int degree, int range) {
 	struct bound * newBound = kmalloc(sizeof(struct bound), GFP_KERNEL);
 	newBound->degree = degree;
 	newBound->range = range;
 	list_add_tail(&(newBound->list), bounds);
-	printk(KERN_DEBUG "new bound added(%d, %d)\n", newBound->degree, newBound->range);
+//	printk(KERN_DEBUG "new bound added(%d, %d)\n", newBound->degree, newBound->range);
 }
 
 void put_task(struct list_head *tasks, int pid, int degree, int range) {
 	struct task_info *task_buf;
 	struct task_info *newTask;
-	printk(KERN_DEBUG "put_task called with pid: %d\n", pid);
+//	printk(KERN_DEBUG "put_task called with pid: %d\n", pid);
+	
 	list_for_each_entry(task_buf, tasks, list) {
 		if (task_buf->pid == pid) {
 			put_bound(&(task_buf->bounds), degree, range);
+			spin_unlock(&locker);
 			return;
 		}
 	}
-	printk(KERN_DEBUG "no task found with pid: %d\n", pid);
+//	printk(KERN_DEBUG "no task found with pid: %d\n", pid);
 
 	// entry not found(== new task)
 	newTask = kmalloc(sizeof(struct task_info), GFP_KERNEL);
@@ -60,7 +65,7 @@ void put_task(struct list_head *tasks, int pid, int degree, int range) {
 	INIT_LIST_HEAD(&newTask->bounds);
 	put_bound(&(newTask->bounds), degree, range);
 	list_add_tail(&(newTask->list), tasks);
-	printk(KERN_DEBUG "new task added(pid: %d)\n", newTask->pid);
+//	printk(KERN_DEBUG "new task added(pid: %d)\n", newTask->pid);
 }
 
 /*
@@ -71,7 +76,7 @@ int remove_bound(struct list_head *bounds, int degree, int range) {
 	struct bound *bound_buf;
 	list_for_each_entry(bound_buf, bounds, list) {
 		if (bound_buf->degree == degree && bound_buf->range == range) {
-			printk(KERN_DEBUG "bound removed(%d, %d)\n", bound_buf->degree, bound_buf->range);
+//			printk(KERN_DEBUG "bound removed(%d, %d)\n", bound_buf->degree, bound_buf->range);
 			list_del(&bound_buf->list);
 			kfree(bound_buf);
 			return 1;
@@ -86,16 +91,14 @@ int remove_bound(struct list_head *bounds, int degree, int range) {
  */
 int remove_task(struct list_head *tasks, int pid, int degree, int range) {
 	struct task_info *task_buf;
-	int status = 0;
+	int status = 1;
 	list_for_each_entry(task_buf, tasks, list) {
 		if (task_buf->pid == pid) {
-			remove_bound(&task_buf->bounds, degree, range);
-
+			status  &= remove_bound(&task_buf->bounds, degree, range); // If one remove_bound is fail then status should set 0.
 			if (list_empty(&task_buf->bounds)) {
-				printk(KERN_DEBUG "task removed(pid: %d)\n", task_buf->pid);
+//				printk(KERN_DEBUG "task removed(pid: %d)\n", task_buf->pid);
 				list_del(&task_buf->list);
 				kfree(task_buf);
-				status = 1;
 			}
 			break;
 		}
@@ -113,13 +116,12 @@ int sys_set_rotation(int degree) {
 	spin_lock(&degree_lock);
 	_degree = degree;
 	spin_unlock(&degree_lock);
-	printk(KERN_DEBUG "set_rotation to %d\n", _degree);
+	printk(KERN_DEBUG "set_rotation to %d occupied %d\n", _degree,write_occupied[_degree]);
 
 	wake_up(&write_q);
 //	printk(KERN_DEBUG "wake up all write lockers\n");
 	wake_up(&read_q);
 //	printk(KERN_DEBUG "wake up all read lockers\n");
-
 	return 1;
 }
 
@@ -151,19 +153,25 @@ int isInRange(int degree, int range) {
 int isLockable(int degree,int range,int target) { //target 0 : read, 1 : write
 	int i;
 	int flag = 1;
-
+	int deg;
 	spin_lock(&locker);
+	printk(KERN_DEBUG "start isLockable %d %d %d\n", degree, range, target);
 	for(i = degree-range; i <= degree+range ; i++) {
-		if(target ==1 && write_locked[convertDegree(i)] != 0) {
-			flag= 0;
-			break;
+		deg = convertDegree(i);
+		if(target ==0) {
+			if(write_locked[deg] + write_occupied[deg] >0) {
+				flag = 0;
+				break;
+			}
 		}
-		else if(target == 0 && read_locked[convertDegree(i)] != 0) {		
-			flag =0;
-			break;
+		else { //target = 1, write;
+			if(write_locked[deg] + read_locked[deg] >0) {
+				flag = 0;
+				break;
+			}
 		}
 	}
-	spin_lock(&unlocker);
+	spin_unlock(&locker);
 	return flag;
 }
 
@@ -175,11 +183,12 @@ int sys_rotlock_read(int degree, int range) {
 
 	printk(KERN_DEBUG "rotlock_read\n");
 	// wait until it meets condition
-	while(!(isInRange(degree,range) && isLockable(degree, range, 1))){
+	while(!(isInRange(degree,range) && isLockable(degree, range, 0))){
 		prepare_to_wait(&read_q,&wait,TASK_INTERRUPTIBLE);
 		schedule();
 		finish_wait(&read_q,&wait);
 	}
+	printk(KERN_DEBUG "READ\n");
 
 
 	spin_lock(&locker);
@@ -203,8 +212,15 @@ int sys_rotlock_write(int degree, int range) {
 
 	if(degree <0 || degree >=360 || range <=0 || range>= 180) return -1;
 	printk(KERN_DEBUG "rotlock_write\n");
+	
+	spin_lock(&locker);
+	for(i = degree-range; i<= degree+range; i++) {
+		deg = convertDegree(i);
+		write_occupied[deg]++;
+	}
+	spin_unlock(&locker);
 
-	while(!(isInRange(degree,range) && isLockable(degree, range,1) && isLockable(degree,range,0))){
+	while(!(isInRange(degree,range) && isLockable(degree, range,1))){
 		prepare_to_wait(&write_q,&wait,TASK_INTERRUPTIBLE);
 		schedule();
 		finish_wait(&write_q,&wait);
@@ -218,6 +234,7 @@ int sys_rotlock_write(int degree, int range) {
 	for(i = degree-range ; i <= degree+range ; i++) {
 		deg = convertDegree(i);
 		write_locked[deg]++;
+		write_occupied[deg]--;
 	}
 	spin_unlock(&locker);
 	return 0;
@@ -234,7 +251,7 @@ int sys_rotunlock_read(int degree, int range) {
 	// check if degree and range exists for given pid
 	if (remove_task(&reader_list, current->pid, degree, range) == 0) {
 		spin_unlock(&locker);
-		return 0; // TODO proper error handling?
+		return -1;
 	}
 
 	for(i = degree-range ; i <= degree+range ; i++) {
@@ -258,7 +275,7 @@ int sys_rotunlock_write(int degree, int range) {
 	// check if degree and range exists for given pid
 	if (remove_task(&writer_list, current->pid, degree, range) == 0) {
 		spin_unlock(&locker);
-		return 0; // TODO proper error handling?
+		return -1; 
 	}
 
 	for(i = degree-range ; i <= degree+range ; i++) {
