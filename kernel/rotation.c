@@ -7,6 +7,7 @@
 #include <linux/uaccess.h>
 #include <linux/slab.h>
 #include <uapi/asm-generic/errno-base.h>
+#include <linux/list.h>
 
 int _degree;	// current degree
 DEFINE_SPINLOCK(degree_lock);
@@ -17,6 +18,50 @@ DEFINE_SPINLOCK(locker);
 
 DECLARE_WAIT_QUEUE_HEAD(read_q);
 DECLARE_WAIT_QUEUE_HEAD(write_q);
+
+LIST_HEAD(task_infos);
+
+struct task_info {
+	int pid;
+	struct list_head bounds;
+	struct list_head list;
+};
+
+struct bound {
+	int degree;
+	int range;
+	struct list_head list;
+};
+
+void put_bound(int degree, int range, struct list_head *bounds) {
+	struct bound * newBound = kmalloc(sizeof(struct bound), GFP_KERNEL);
+	newBound->degree = degree;
+	newBound->range = range;
+	list_add_tail(&(newBound->list), bounds);
+	printk(KERN_DEBUG "new bound added(%d, %d)\n", newBound->degree, newBound->range);
+}
+
+void put_task(int pid, int degree, int range) {
+	struct task_info *task_buf;
+	struct task_info *newTask;
+	printk(KERN_DEBUG "put_task called with pid: %d\n", pid);
+	list_for_each_entry(task_buf, &task_infos, list) {
+		if (task_buf->pid == pid) {
+			put_bound(degree, range, &(task_buf->bounds));
+			return;
+		}
+	}
+	printk(KERN_DEBUG "no task found with pid: %d\n", pid);
+
+	// entry not found(== new task)
+	newTask = kmalloc(sizeof(struct task_info), GFP_KERNEL);
+	newTask->pid = pid;
+	INIT_LIST_HEAD(&newTask->bounds);
+	put_bound(degree, range, &(newTask->bounds));
+	list_add_tail(&(newTask->list), &task_infos);
+	printk(KERN_DEBUG "new task added(pid: %d)\n", newTask->pid);
+}
+
 
 int sys_set_rotation(int degree) {
 
@@ -43,21 +88,20 @@ int convertDegree(int n) {
 	return n;
 }
 
-
-int isInRange(int degree, int range){
+int isInRange(int degree, int range) {
 	int max, min, flag = 0;
 	max = degree + range;
 	min = degree - range;
 	spin_lock(&degree_lock);
 	if ( _degree <= max) {
 		if( min <= _degree)
-			flag = 0; // min-degree-max
+			flag = 1; // min-degree-max
 		else
 			flag = (_degree <= max-360); //degree-min-max
 	} else  {
 		flag = (min + 360 <= _degree); //min-max-degree
 	}
-	spin_lock(&degree_lock);
+	spin_unlock(&degree_lock);
 
 	return flag;
 }
@@ -87,22 +131,25 @@ int sys_rotlock_read(int degree, int range) {
 	if(degree <0 || degree >=360 || range <=0 || range>= 180) return -1;
 
 	printk(KERN_DEBUG "rotlock_read\n");
-	while(!(isInRange(degree,range) && isLockable(degree, range,1))){
-//		printk(KERN_DEBUG "HOLD\n");
+	// wait until it meets condition
+	while(!(isInRange(degree,range) && isLockable(degree, range, 1))){
 		prepare_to_wait(&read_q,&wait,TASK_INTERRUPTIBLE);
 		schedule();
 		finish_wait(&read_q,&wait);
 	}
 
-//	printk(KERN_DEBUG "AFTER HOLD\n");
-	//Increment the number of locks at each degree.
+
 	spin_lock(&locker);
 
-//	printk(KERN_DEBUG "spin_lock\n");
+	//Increment the number of locks at each degree.
 	for(i = degree-range ; i <= degree+range ; i++) {
 		deg = convertDegree(i);
 		read_locked[deg]++;
 	}
+
+	// put task into task_info_list
+	put_task(current->pid, degree, range);
+
 	spin_unlock(&locker);
 	return 0;
 }
