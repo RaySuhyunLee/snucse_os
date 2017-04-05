@@ -152,6 +152,7 @@ int isLockable(int degree,int range,int target) { //target 0 : read, 1 : write
 	int i;
 	int flag = 1;
 
+	spin_lock(&locker);
 	for(i = degree-range; i <= degree+range ; i++) {
 		if(target ==1 && write_locked[convertDegree(i)] != 0) {
 			flag= 0;
@@ -162,6 +163,7 @@ int isLockable(int degree,int range,int target) { //target 0 : read, 1 : write
 			break;
 		}
 	}
+	spin_lock(&unlocker);
 	return flag;
 }
 
