@@ -19,7 +19,8 @@ DEFINE_SPINLOCK(locker);
 DECLARE_WAIT_QUEUE_HEAD(read_q);
 DECLARE_WAIT_QUEUE_HEAD(write_q);
 
-LIST_HEAD(task_infos);
+LIST_HEAD(reader_list);
+LIST_HEAD(writer_list);
 
 struct task_info {
 	int pid;
@@ -33,7 +34,7 @@ struct bound {
 	struct list_head list;
 };
 
-void put_bound(int degree, int range, struct list_head *bounds) {
+void put_bound(struct list_head *bounds,int degree, int range) {
 	struct bound * newBound = kmalloc(sizeof(struct bound), GFP_KERNEL);
 	newBound->degree = degree;
 	newBound->range = range;
@@ -41,13 +42,13 @@ void put_bound(int degree, int range, struct list_head *bounds) {
 	printk(KERN_DEBUG "new bound added(%d, %d)\n", newBound->degree, newBound->range);
 }
 
-void put_task(int pid, int degree, int range) {
+void put_task(struct list_head *tasks, int pid, int degree, int range) {
 	struct task_info *task_buf;
 	struct task_info *newTask;
 	printk(KERN_DEBUG "put_task called with pid: %d\n", pid);
-	list_for_each_entry(task_buf, &task_infos, list) {
+	list_for_each_entry(task_buf, tasks, list) {
 		if (task_buf->pid == pid) {
-			put_bound(degree, range, &(task_buf->bounds));
+			put_bound(&(task_buf->bounds), degree, range);
 			return;
 		}
 	}
@@ -57,16 +58,16 @@ void put_task(int pid, int degree, int range) {
 	newTask = kmalloc(sizeof(struct task_info), GFP_KERNEL);
 	newTask->pid = pid;
 	INIT_LIST_HEAD(&newTask->bounds);
-	put_bound(degree, range, &(newTask->bounds));
-	list_add_tail(&(newTask->list), &task_infos);
+	put_bound(&(newTask->bounds), degree, range);
+	list_add_tail(&(newTask->list), tasks);
 	printk(KERN_DEBUG "new task added(pid: %d)\n", newTask->pid);
 }
 
 /*
- * if pop succeeds(if task exists) return 1
+ * if remove succeeds(if task exists) return 1
  * else return 0
  */
-int pop_bound(int degree, int range, struct list_head *bounds) {
+int remove_bound(struct list_head *bounds, int degree, int range) {
 	struct bound *bound_buf;
 	list_for_each_entry(bound_buf, bounds, list) {
 		if (bound_buf->degree == degree && bound_buf->range == range) {
@@ -80,15 +81,16 @@ int pop_bound(int degree, int range, struct list_head *bounds) {
 }
 
 /*
- * if pop succeeds(if task exists) return 1
+ * if remove succeeds(if task exists) return 1
  * else return 0
  */
-int pop_task(int pid, int degree, int range) {
+int remove_task(struct list_head *tasks, int pid, int degree, int range) {
 	struct task_info *task_buf;
 	int status = 0;
-	list_for_each_entry(task_buf, &task_infos, list) {
+	list_for_each_entry(task_buf, tasks, list) {
 		if (task_buf->pid == pid) {
-			pop_bound(degree, range, &task_buf->bounds);
+			remove_bound(&task_buf->bounds, degree, range);
+
 			if (list_empty(&task_buf->bounds)) {
 				printk(KERN_DEBUG "task removed(pid: %d)\n", task_buf->pid);
 				list_del(&task_buf->list);
@@ -180,14 +182,14 @@ int sys_rotlock_read(int degree, int range) {
 
 	spin_lock(&locker);
 
+	// put task into task_info_list
+	put_task(&reader_list, current->pid, degree, range);
+
 	//Increment the number of locks at each degree.
 	for(i = degree-range ; i <= degree+range ; i++) {
 		deg = convertDegree(i);
 		read_locked[deg]++;
 	}
-
-	// put task into task_info_list
-	put_task(current->pid, degree, range);
 
 	spin_unlock(&locker);
 	return 0;
@@ -205,8 +207,12 @@ int sys_rotlock_write(int degree, int range) {
 		schedule();
 		finish_wait(&write_q,&wait);
 	}
+
 	spin_lock(&locker);
-//	printk(KERN_DEBUG "W_spin_lock\n");
+	// put task into task_info_list
+	put_task(&writer_list, current->pid, degree, range);
+
+	//Increment the number of locks at each degree.
 	for(i = degree-range ; i <= degree+range ; i++) {
 		deg = convertDegree(i);
 		write_locked[deg]++;
@@ -224,7 +230,7 @@ int sys_rotunlock_read(int degree, int range) {
 	
 	spin_lock(&locker);
 	// check if degree and range exists for given pid
-	if (pop_task(current->pid, degree, range) == 0) {
+	if (remove_task(&reader_list, current->pid, degree, range) == 0) {
 		spin_unlock(&locker);
 		return 0; // TODO proper error handling?
 	}
@@ -247,6 +253,12 @@ int sys_rotunlock_write(int degree, int range) {
 
 	//Increment the number of locks at each degree.
 	spin_lock(&locker);
+	// check if degree and range exists for given pid
+	if (remove_task(&writer_list, current->pid, degree, range) == 0) {
+		spin_unlock(&locker);
+		return 0; // TODO proper error handling?
+	}
+
 	for(i = degree-range ; i <= degree+range ; i++) {
 		deg = convertDegree(i);
 		write_locked[deg]--;
