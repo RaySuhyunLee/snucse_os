@@ -6,13 +6,16 @@
 #include <signal.h>
 #include <linux/rotation.h>
 
-int main (int start) {
+int main (int argc, char *argv[]) {
 	
 	FILE *f;
 	int for_lock;
 	int for_unlock;
-	int arg = start;
 	char str[15];
+	char * s = argv[1];
+	int i =0;
+	int arg = 0;
+	while(*(s+i)!= NULL) arg = arg*10 + (*(s+(i++))-'0');
 	
 	while (1) {
 	
@@ -27,7 +30,7 @@ int main (int start) {
 		//use write_unlock
 		for_unlock = syscall(385, 90, 90);
 
-		printf("selector: %s", str);
+		printf("selector: %s \n", str);
 		arg++;
 	}
 		

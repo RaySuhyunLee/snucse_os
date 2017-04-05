@@ -6,7 +6,7 @@
 #include <signal.h>
 #include <linux/rotation.h>
 
-int main (int start) {
+int main (int start, char* argv[]) {
 	
 	FILE *f;
 	int for_lock;
@@ -15,7 +15,8 @@ int main (int start) {
 	int tmp;
 	int i;
 	int scan_ret;
-	
+	char* str = argv[1];
+
 	while (1) {
 	
 		//use read_lock
@@ -24,19 +25,22 @@ int main (int start) {
 		f = fopen("integer", "r");
 		scan_ret = fscanf(f, "%d", &tmp);
 		fclose(f);
+		printf("trial-%s: %d = ", str,tmp); 
 		
 		for(i=2;i<=tmp;i++) {
 			if(tmp % i == 0) {
-				printf("%d ",i);
+				printf("%d",i);
 				tmp = tmp / i;
 				if(tmp % i == 0) printf("* ");
 				else if(tmp % i != 0) {
 					if(tmp > i)
-					printf("* ");
+					printf(" * ");
 				}
 				i = 1;
 			}
 		}
+
+		printf("\n");
 		
 		//use read_unlock
 		for_unlock = syscall(383, 90, 90);
