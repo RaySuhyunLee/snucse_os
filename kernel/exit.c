@@ -59,6 +59,12 @@
 #include <asm/pgtable.h>
 #include <asm/mmu_context.h>
 
+///////////////////////////////
+#include <linux/rotation.h>
+#include <linux/sched.h>
+#include <linux/kernel.h>
+//////////////////////////////
+
 static void exit_mm(struct task_struct * tsk);
 
 static void __unhash_process(struct task_struct *p, bool group_dead)
@@ -716,6 +722,12 @@ void do_exit(long code)
 {
 	struct task_struct *tsk = current;
 	int group_dead;
+
+	////////////////////////////////
+	exit_rotlock();
+	//printk("currnet pid is: %d\n", current->pid);
+	///////////////////////////////
+	
 
 	profile_task_exit(tsk);
 
