@@ -15,26 +15,27 @@ int main (int argc, char *argv[]) {
 	char * s = argv[1];
 	int i =0;
 	int arg = 0;
-	int degree, range;
+	int degree, range, option;
 
-	while(*(s+i)!= NULL) arg = arg*10 + (*(s+(i++))-'0');
+	while(s != NULL && *(s+i)!= NULL) arg = arg*10 + (*(s+(i++))-'0');
 	
 	while (1) {
-		//use write_lock
-		printf("Lock) Degree, Range : ");
-		scanf("%d %d", &degree, &range);
 
+		//use write_lock
+		printf("Option(1:Lock/0:Unlock)  Degree, Range : ");
+		scanf("%d %d %d",&option, &degree, &range);
+		if(option == 0){
+			for_unlock = syscall(385,degree,range);
+			continue;
+		}
 		for_lock = syscall(382, degree, range);
 		
 		sprintf(str, "%d", arg);
 		f = fopen("integer", "w");
 		fputs(str, f);
 		fclose(f);
-
+		
 		//use write_unlock
-		printf("Unlock) Press any key and enter ");
-		scanf("%d",&i);
-		for_unlock = syscall(385,degree,range);
 		printf("selector: %s \n", str);
 		arg++;
 	}

@@ -11,18 +11,21 @@ int main (int start, char* argv[]) {
 	FILE *f;
 	int for_lock;
 	int for_unlock;
-	int arg = start;
 	int tmp;
 	int i;
 	int scan_ret;
 	char* str = argv[1];
 	int degree, range;
+	int option;
 	while (1) {
-		
 
-		printf("Lock) Degree, Range : ");
-		scanf("%d %d", &degree, &range);
+		printf("Option(1:Lock/0:Unlock)  Degree, Range : ");
+		scanf("%d %d %d",&option, &degree, &range);
 		//use read_lock
+		if(option ==0 ) {
+			for_unlock = syscall(383, degree, range);
+			continue;
+		}
 		for_lock = syscall(381, degree, range);
 		
 		f = fopen("integer", "r");
@@ -42,15 +45,7 @@ int main (int start, char* argv[]) {
 				i = 1;
 			}
 		}
-
 		printf("\n");
-		
-		//use read_unlock
-		printf("Unlock) Press any key and enter "); //dummy var.
-		scanf("%d",&i); //dummy var.
-		for_unlock = syscall(383, degree, range);
-		
-		arg++;
 	}
 		
 	return 0;
