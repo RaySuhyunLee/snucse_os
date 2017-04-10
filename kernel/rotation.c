@@ -281,10 +281,9 @@ int remove_bound_exit(struct list_head *bounds, int idx) {
 	int i, deg;
 	
 	list_for_each_entry(bound_buf, bounds, list) {
-			printk(KERN_DEBUG "bound removed(%d, %d)\n", bound_buf->degree, bound_buf->range);
-			list_del(&bound_buf->list);
+   		list_del(&bound_buf->list);
 
-			if(idx == 0) {	//reader
+			if(idx == 0) { //reader
 				for(i=(bound_buf->degree)-(bound_buf->range);i<=(bound_buf->degree)+(bound_buf->range);i++){
 					deg = convertDegree(i);
 					read_locked[deg]--;
@@ -297,10 +296,8 @@ int remove_bound_exit(struct list_head *bounds, int idx) {
 				}
 			}
 
-			printk(KERN_DEBUG "STARCRAFT2 is Trash Game");
 			kfree(bound_buf);
-			printk(KERN_DEBUG "OVERWATCH is Trash GAME");
-			return 1;  //don't think this is right
+			return 1; 
 	}
 	
 	return 1;
@@ -311,19 +308,13 @@ int remove_task_exit(struct list_head *tasks, int pid, int rw) {
 	int status = 0;
 	list_for_each_entry(task_buf, tasks, list) {
 		if (task_buf->pid == pid) {
-			//for debug
-			printk(KERN_DEBUG "DEABLO3 is GOD GAME");
 			remove_bound_exit(&task_buf->bounds, rw);
-			printk(KERN_DEBUG "I Want to SLEEEEEEEEEEEEEEEEEEEP");
 			if (list_empty(&task_buf->bounds)) {
-				printk(KERN_DEBUG "task removed(pid: %d)\n", task_buf->pid);
 				list_del(&task_buf->list);
 				kfree(task_buf);
 				status = 1;
 			}
-			printk(KERN_DEBUG "remove task finishes well!!!!!!!!!!!!!!!");
 			break;
-		//printk(KERN_DEBUG "PLEASE WORKKKKKKKK");
 		}
 	}
 	return status;
@@ -331,13 +322,9 @@ int remove_task_exit(struct list_head *tasks, int pid, int rw) {
 
 void exit_rotlock (void) {
 	int i;
-	//printk(KERN_DEBUG "DIABLO3 is GOD GAME");
 	spin_lock(&locker);
 	remove_task_exit(&reader_list, current -> pid,0);
 	remove_task_exit(&writer_list, current -> pid,1);
-	//do_exit(0);
 	spin_unlock(&locker);
 }
 
-//do_exit(exit_rotlock);
-//signal(SIGINT, exit_rotlock);
