@@ -43,7 +43,7 @@ void put_bound(struct list_head *bounds,int degree, int range) {
 	newBound->degree = degree;
 	newBound->range = range;
 	list_add_tail(&(newBound->list), bounds);
-//	printk(KERN_DEBUG "new bound added(%d, %d)\n", newBound->degree, newBound->range);
+	printk(KERN_DEBUG "new bound added(%d, %d)\n", newBound->degree, newBound->range);
 }
 
 void put_task(struct list_head *tasks, int pid, int degree, int range) {
@@ -54,7 +54,6 @@ void put_task(struct list_head *tasks, int pid, int degree, int range) {
 	list_for_each_entry(task_buf, tasks, list) {
 		if (task_buf->pid == pid) {
 			put_bound(&(task_buf->bounds), degree, range);
-			spin_unlock(&locker);
 			return;
 		}
 	}
@@ -316,8 +315,9 @@ int remove_bound_exit(struct list_head *bounds, int idx) {
 	int i, deg;
 	
 	list_for_each_entry(bound_buf, bounds, list) {
-   		list_del(&bound_buf->list);
-
+		printk(KERN_DEBUG "%d %d \n" , bound_buf->degree, bound_buf->range);
+		list_del(&bound_buf->list);
+	
 			if(idx == 0) { //reader
 				for(i=(bound_buf->degree)-(bound_buf->range);i<=(bound_buf->degree)+(bound_buf->range);i++){
 					deg = convertDegree(i);
@@ -332,10 +332,11 @@ int remove_bound_exit(struct list_head *bounds, int idx) {
 			}
 
 			kfree(bound_buf);
+			printk(KERN_DEBUG "WLSTATE : %d\n" , write_locked[deg]);
 			return 1; 
 	}
 	
-	return 1;
+	return 0;
 	
 }
 int remove_task_exit(struct list_head *tasks, int pid, int rw) {
@@ -343,7 +344,7 @@ int remove_task_exit(struct list_head *tasks, int pid, int rw) {
 	int status = 0;
 	list_for_each_entry(task_buf, tasks, list) {
 		if (task_buf->pid == pid) {
-			remove_bound_exit(&task_buf->bounds, rw);
+			while(remove_bound_exit(&task_buf->bounds, rw));
 			if (list_empty(&task_buf->bounds)) {
 				list_del(&task_buf->list);
 				kfree(task_buf);
