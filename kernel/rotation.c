@@ -8,6 +8,7 @@
 #include <linux/slab.h>
 #include <uapi/asm-generic/errno-base.h>
 #include <linux/list.h>
+#include <linux/signal.h>
 
 int _degree;	// current degree
 DEFINE_SPINLOCK(degree_lock);
@@ -182,6 +183,8 @@ int sys_rotlock_read(int degree, int range) {
 	DEFINE_WAIT(wait);
 	int i,deg;
 
+
+	
 	if(degree <0 || degree >=360 || range <=0 || range>= 180) return -1;
 
 	printk(KERN_DEBUG "rotlock_read\n");
@@ -189,6 +192,10 @@ int sys_rotlock_read(int degree, int range) {
 	while(!(isInRange(degree,range) && isLockable(degree, range, 0))){
 		prepare_to_wait(&read_q,&wait,TASK_INTERRUPTIBLE);
 		schedule();
+		if(signal_pending(current)) {
+			remove_wait_queue(&read_q, &wait);
+			return 0;
+		}
 		finish_wait(&read_q,&wait);
 	}
 	spin_lock(&locker);
@@ -211,6 +218,8 @@ int sys_rotlock_write(int degree, int range) {
 	int i,deg;
 	DEFINE_WAIT(wait);
 
+
+	
 	if(degree <0 || degree >=360 || range <=0 || range>= 180) return -1;
 	printk(KERN_DEBUG "rotlock_write\n");
 	
@@ -224,6 +233,10 @@ int sys_rotlock_write(int degree, int range) {
 	while(!(isInRange(degree,range) && isLockable(degree, range,1))){
 		prepare_to_wait(&write_q,&wait,TASK_INTERRUPTIBLE);
 		schedule();
+		if(signal_pending(current)) {
+			remove_wait_queue(&write_q, &wait);
+			return 0;
+		}
 		finish_wait(&write_q,&wait);
 	}
 
@@ -246,6 +259,8 @@ int sys_rotunlock_read(int degree, int range) {
 	int i,deg;
 	DEFINE_WAIT(wait);
 
+
+	
 	if(degree <0 || degree >=360 || range <=0 || range>= 180) return -1;
 	printk(KERN_DEBUG "rotunlock_read\n");
 	
@@ -256,7 +271,7 @@ int sys_rotunlock_read(int degree, int range) {
 		spin_unlock(&locker);
 		return -1;
 	}
-
+	
 	for(i = degree-range ; i <= degree+range ; i++) {
 		deg = convertDegree(i);
 		read_locked[deg]--;
@@ -272,6 +287,8 @@ int sys_rotunlock_write(int degree, int range) {
 	int i,deg;
 	DEFINE_WAIT(wait);
 
+
+	
 	if(degree <0 || degree >=360 || range <=0 || range>= 180) return -1;
 	printk(KERN_DEBUG "rotunlock_write\n");
 
@@ -292,4 +309,57 @@ int sys_rotunlock_write(int degree, int range) {
 	spin_unlock(&locker);
 	wake_up_queue();
 	return 0;
+	
 }
+int remove_bound_exit(struct list_head *bounds, int idx) {
+	struct bound* bound_buf;
+	int i, deg;
+	
+	list_for_each_entry(bound_buf, bounds, list) {
+   		list_del(&bound_buf->list);
+
+			if(idx == 0) { //reader
+				for(i=(bound_buf->degree)-(bound_buf->range);i<=(bound_buf->degree)+(bound_buf->range);i++){
+					deg = convertDegree(i);
+					read_locked[deg]--;
+				}
+			}
+			else {
+				for(i=(bound_buf->degree)-(bound_buf->range);i<=(bound_buf->degree)+(bound_buf->range);i++){
+					deg = convertDegree(i);
+					write_locked[deg]--;
+				}
+			}
+
+			kfree(bound_buf);
+			return 1; 
+	}
+	
+	return 1;
+	
+}
+int remove_task_exit(struct list_head *tasks, int pid, int rw) {
+	struct task_info *task_buf;
+	int status = 0;
+	list_for_each_entry(task_buf, tasks, list) {
+		if (task_buf->pid == pid) {
+			remove_bound_exit(&task_buf->bounds, rw);
+			if (list_empty(&task_buf->bounds)) {
+				list_del(&task_buf->list);
+				kfree(task_buf);
+				status = 1;
+			}
+			break;
+		}
+	}
+	return status;
+}
+
+void exit_rotlock (void) {
+	int i;
+	spin_lock(&locker);
+	remove_task_exit(&reader_list, current -> pid,0);
+	remove_task_exit(&writer_list, current -> pid,1);
+	spin_unlock(&locker);
+}
+
