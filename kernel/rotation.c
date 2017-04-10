@@ -161,11 +161,20 @@ int isLockable(int degree,int range,int target) { //target 0 : read, 1 : write
 	int flag = 1;
 	int deg;
 	spin_lock(&locker);
-	printk(KERN_DEBUG "start isLockable %d %d %d\n", degree, range, target);
+	if(target ==0) {
+			spin_lock(&degree_lock);
+			if(write_occupied[_degree] >0) {
+				spin_unlock(&degree_lock);
+				spin_unlock(&locker);
+				return 0;
+			}
+			spin_unlock(&degree_lock);
+	}
+	
 	for(i = degree-range; i <= degree+range ; i++) {
 		deg = convertDegree(i);
 		if(target ==0) {
-			if(write_locked[deg] + write_occupied[deg] >0) {
+			if(write_locked[deg]>0) {
 				flag = 0;
 				break;
 			}
@@ -178,6 +187,7 @@ int isLockable(int degree,int range,int target) { //target 0 : read, 1 : write
 		}
 	}
 	spin_unlock(&locker);
+	printk(KERN_DEBUG "start isLockable %d %d %d flag :%d\n", degree, range, target,flag);
 	return flag;
 }
 
@@ -347,6 +357,7 @@ int remove_task_exit(struct list_head *tasks, int pid, int rw) {
 			while(remove_bound_exit(&task_buf->bounds, rw));
 			if (list_empty(&task_buf->bounds)) {
 				list_del(&task_buf->list);
+				printk(KERN_DEBUG "REMOVE TASK %d\n",pid);
 				kfree(task_buf);
 				status = 1;
 			}
