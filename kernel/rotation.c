@@ -179,6 +179,10 @@ int sys_rotlock_read(int degree, int range) {
 	while(!(isInRange(degree,range) && isLockable(degree, range, 1))){
 		prepare_to_wait(&read_q,&wait,TASK_INTERRUPTIBLE);
 		schedule();
+		if(signal_pending(current)) {
+			remove_wait_queue(&read_q, &wait);
+			return 0;
+		}
 		finish_wait(&read_q,&wait);
 	}
 
@@ -210,6 +214,10 @@ int sys_rotlock_write(int degree, int range) {
 	while(!(isInRange(degree,range) && isLockable(degree, range,1) && isLockable(degree,range,0))){
 		prepare_to_wait(&write_q,&wait,TASK_INTERRUPTIBLE);
 		schedule();
+		if(signal_pending(current)) {
+			remove_wait_queue(&write_q, &wait);
+			return 0;
+		}
 		finish_wait(&write_q,&wait);
 	}
 
