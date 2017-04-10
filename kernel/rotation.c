@@ -285,13 +285,13 @@ int remove_bound_exit(struct list_head *bounds, int idx) {
 			list_del(&bound_buf->list);
 
 			if(idx == 0) {	//reader
-				for(i=(bound_buf->degree)-(bound_buf->range);i<(bound_buf->degree)+(bound_buf->range);i++){
+				for(i=(bound_buf->degree)-(bound_buf->range);i<=(bound_buf->degree)+(bound_buf->range);i++){
 					deg = convertDegree(i);
 					read_locked[deg]--;
 				}
 			}
 			else {
-				for(i=(bound_buf->degree)-(bound_buf->range);i<(bound_buf->degree)+(bound_buf->range);i++){
+				for(i=(bound_buf->degree)-(bound_buf->range);i<=(bound_buf->degree)+(bound_buf->range);i++){
 					deg = convertDegree(i);
 					write_locked[deg]--;
 				}
