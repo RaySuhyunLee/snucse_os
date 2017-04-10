@@ -93,18 +93,21 @@ int remove_bound(struct list_head *bounds, int degree, int range) {
 int remove_task(struct list_head *tasks, int pid, int degree, int range) {
 	struct task_info *task_buf;
 	int status = 1;
+	int flag = 0;
+	printk(KERN_DEBUG "Remove Task start : %d %d %d\n", pid , degree, range);
 	list_for_each_entry(task_buf, tasks, list) {
 		if (task_buf->pid == pid) {
-			status  &= remove_bound(&task_buf->bounds, degree, range); // If one remove_bound is fail then status should set 0.
+			flag = 1;
+			status &= remove_bound(&task_buf->bounds, degree, range); // If one remove_bound is fail then status should set 0.
 			if (list_empty(&task_buf->bounds)) {
-//				printk(KERN_DEBUG "task removed(pid: %d)\n", task_buf->pid);
+				printk(KERN_DEBUG "task removed(pid: %d)\n", task_buf->pid);
 				list_del(&task_buf->list);
 				kfree(task_buf);
 			}
 			break;
 		}
 	}
-	return status;
+	return status&flag;
 }
 
 void wake_up_queue(void) {
@@ -257,8 +260,6 @@ int sys_rotlock_write(int degree, int range) {
 int sys_rotunlock_read(int degree, int range) {
 	int i,deg;
 	DEFINE_WAIT(wait);
-
-
 	
 	if(degree <0 || degree >=360 || range <=0 || range>= 180) return -1;
 	printk(KERN_DEBUG "rotunlock_read\n");
@@ -332,7 +333,6 @@ int remove_bound_exit(struct list_head *bounds, int idx) {
 			}
 
 			kfree(bound_buf);
-			printk(KERN_DEBUG "WLSTATE : %d\n" , write_locked[deg]);
 			return 1; 
 	}
 	
