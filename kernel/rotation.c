@@ -43,7 +43,7 @@ void put_bound(struct list_head *bounds,int degree, int range) {
 	newBound->degree = degree;
 	newBound->range = range;
 	list_add_tail(&(newBound->list), bounds);
-//	printk(KERN_DEBUG "new bound added(%d, %d)\n", newBound->degree, newBound->range);
+	printk(KERN_DEBUG "new bound added(%d, %d)\n", newBound->degree, newBound->range);
 }
 
 void put_task(struct list_head *tasks, int pid, int degree, int range) {
@@ -54,7 +54,6 @@ void put_task(struct list_head *tasks, int pid, int degree, int range) {
 	list_for_each_entry(task_buf, tasks, list) {
 		if (task_buf->pid == pid) {
 			put_bound(&(task_buf->bounds), degree, range);
-			spin_unlock(&locker);
 			return;
 		}
 	}
@@ -94,18 +93,21 @@ int remove_bound(struct list_head *bounds, int degree, int range) {
 int remove_task(struct list_head *tasks, int pid, int degree, int range) {
 	struct task_info *task_buf;
 	int status = 1;
+	int flag = 0;
+	printk(KERN_DEBUG "Remove Task start : %d %d %d\n", pid , degree, range);
 	list_for_each_entry(task_buf, tasks, list) {
 		if (task_buf->pid == pid) {
-			status  &= remove_bound(&task_buf->bounds, degree, range); // If one remove_bound is fail then status should set 0.
+			flag = 1;
+			status &= remove_bound(&task_buf->bounds, degree, range); // If one remove_bound is fail then status should set 0.
 			if (list_empty(&task_buf->bounds)) {
-//				printk(KERN_DEBUG "task removed(pid: %d)\n", task_buf->pid);
+				printk(KERN_DEBUG "task removed(pid: %d)\n", task_buf->pid);
 				list_del(&task_buf->list);
 				kfree(task_buf);
 			}
 			break;
 		}
 	}
-	return status;
+	return status&flag;
 }
 
 void wake_up_queue(void) {
@@ -159,11 +161,20 @@ int isLockable(int degree,int range,int target) { //target 0 : read, 1 : write
 	int flag = 1;
 	int deg;
 	spin_lock(&locker);
-	printk(KERN_DEBUG "start isLockable %d %d %d\n", degree, range, target);
+	if(target ==0) {
+			spin_lock(&degree_lock);
+			if(write_occupied[_degree] >0) {
+				spin_unlock(&degree_lock);
+				spin_unlock(&locker);
+				return 0;
+			}
+			spin_unlock(&degree_lock);
+	}
+	
 	for(i = degree-range; i <= degree+range ; i++) {
 		deg = convertDegree(i);
 		if(target ==0) {
-			if(write_locked[deg] + write_occupied[deg] >0) {
+			if(write_locked[deg]>0) {
 				flag = 0;
 				break;
 			}
@@ -176,6 +187,7 @@ int isLockable(int degree,int range,int target) { //target 0 : read, 1 : write
 		}
 	}
 	spin_unlock(&locker);
+	printk(KERN_DEBUG "start isLockable %d %d %d flag :%d\n", degree, range, target,flag);
 	return flag;
 }
 
@@ -258,8 +270,6 @@ int sys_rotlock_write(int degree, int range) {
 int sys_rotunlock_read(int degree, int range) {
 	int i,deg;
 	DEFINE_WAIT(wait);
-
-
 	
 	if(degree <0 || degree >=360 || range <=0 || range>= 180) return -1;
 	printk(KERN_DEBUG "rotunlock_read\n");
@@ -316,8 +326,9 @@ int remove_bound_exit(struct list_head *bounds, int idx) {
 	int i, deg;
 	
 	list_for_each_entry(bound_buf, bounds, list) {
-   		list_del(&bound_buf->list);
-
+		printk(KERN_DEBUG "%d %d \n" , bound_buf->degree, bound_buf->range);
+		list_del(&bound_buf->list);
+	
 			if(idx == 0) { //reader
 				for(i=(bound_buf->degree)-(bound_buf->range);i<=(bound_buf->degree)+(bound_buf->range);i++){
 					deg = convertDegree(i);
@@ -335,7 +346,7 @@ int remove_bound_exit(struct list_head *bounds, int idx) {
 			return 1; 
 	}
 	
-	return 1;
+	return 0;
 	
 }
 int remove_task_exit(struct list_head *tasks, int pid, int rw) {
@@ -343,9 +354,10 @@ int remove_task_exit(struct list_head *tasks, int pid, int rw) {
 	int status = 0;
 	list_for_each_entry(task_buf, tasks, list) {
 		if (task_buf->pid == pid) {
-			remove_bound_exit(&task_buf->bounds, rw);
+			while(remove_bound_exit(&task_buf->bounds, rw));
 			if (list_empty(&task_buf->bounds)) {
 				list_del(&task_buf->list);
+				printk(KERN_DEBUG "REMOVE TASK %d\n",pid);
 				kfree(task_buf);
 				status = 1;
 			}
