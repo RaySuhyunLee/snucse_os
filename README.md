@@ -63,6 +63,11 @@ struct SearchResult {
 	int count;           // actual number of prinfo elements
 };
 ```
+
+
+The system call never allocate system call number 384. If a function f allocate that number, then f is called as soon as booting. We assumed that it is already reserved. That's why we register rotunlock_write to system call number 385.
+Caution : You must write syscall_nil in calls.S 384 위치.
+
 ## Policies
 
 
