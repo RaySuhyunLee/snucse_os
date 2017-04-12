@@ -207,6 +207,7 @@ int sys_set_rotation(int degree) {
 	int count = 0;
 	struct task_info *task_buf;
 	struct bound *bound_buf;
+	int flag =0;
 
 	if( degree <0 || degree >= 360) {
 			return -EINVAL;
@@ -224,12 +225,15 @@ int sys_set_rotation(int degree) {
 	// search for every available process
 	list_for_each_entry(task_buf, &writer_list, list) {
 		printk(KERN_DEBUG "writer task found: pid %d\n", task_buf->pid);
+		if(flag == 1) break;//write can lock only one at a time.
 		list_for_each_entry(bound_buf, &task_buf->bounds, list) {
+		 	if(flag == 1) break;
 			if (isInRange(bound_buf->degree, bound_buf->range)
 					&& isLockable(bound_buf->degree, bound_buf->range, 1)
 					&& bound_buf->is_locked == 0) {
 				count++;
-				// TODO wakeup
+				flag = 1;
+				// TODO wakeup <= maybe It is OK
 			}
 		}
 	}
