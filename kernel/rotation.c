@@ -25,7 +25,7 @@ DECLARE_WAIT_QUEUE_HEAD(write_q);
 LIST_HEAD(reader_list);
 LIST_HEAD(writer_list);
 
-DEFINE_SPINLOCK(list_lock);
+//DEFINE_SPINLOCK(list_lock);
 
 struct task_info {
 	int pid;
@@ -109,7 +109,6 @@ int remove_task(struct list_head *tasks, int pid, int degree, int range) {
 			break;
 		}
 	}
-	printk(KERN_DEBUG, "flag : %d\n" , flag);
 	return status&flag;
 }
 
@@ -168,6 +167,36 @@ int isInRange(int degree, int range) {
 
 	return flag;
 }
+int isLockable_no_spin_lock(int degree,int range,int target) { //target 0 : read, 1 : write
+	int i;
+	int flag = 1;
+	int deg;
+	spin_lock(&degree_lock);
+	if(write_occupied[_degree] >0) {
+		spin_unlock(&degree_lock);
+		return 0;
+	}
+	spin_unlock(&degree_lock);
+	
+	for(i = degree-range; i <= degree+range ; i++) {
+		deg = convertDegree(i);
+		if(target ==0) {
+			if(write_locked[deg]>0) {
+				flag = 0;
+				break;
+			}
+		}
+		else { //target = 1, write;
+			if(write_locked[deg] + read_locked[deg] >0) {
+				flag = 0;
+				break;
+			}
+		}
+	}
+	// printk(KERN_DEBUG "start isLockable %d %d %d flag :%d\n", degree, range, target,flag);
+	return flag;
+}
+
 
 
 int isLockable(int degree,int range,int target) { //target 0 : read, 1 : write
@@ -175,15 +204,13 @@ int isLockable(int degree,int range,int target) { //target 0 : read, 1 : write
 	int flag = 1;
 	int deg;
 	spin_lock(&locker);
-	if(target ==0) {
-			spin_lock(&degree_lock);
-			if(write_occupied[_degree] >0) {
-				spin_unlock(&degree_lock);
-				spin_unlock(&locker);
-				return 0;
-			}
-			spin_unlock(&degree_lock);
+	spin_lock(&degree_lock);
+	if(write_occupied[_degree] >0) {
+		spin_unlock(&degree_lock);
+		spin_unlock(&locker);
+		return 0;
 	}
+	spin_unlock(&degree_lock);
 	
 	for(i = degree-range; i <= degree+range ; i++) {
 		deg = convertDegree(i);
@@ -253,8 +280,8 @@ int sys_set_rotation(int degree) {
 	spin_unlock(&degree_lock);
 	printk(KERN_DEBUG "****************** ROTATION %d *****************\n", degree);
 	printk(KERN_DEBUG "READ: %d | WRITE: %d | OCUPIED: %d \n", read_locked[degree], write_locked[degree], write_occupied[degree]);
-
-	spin_lock(&list_lock);
+	spin_lock(&locker);
+//	spin_lock(&list_lock);
 	// search for every available process
 	list_for_each_entry(task_buf, &writer_list, list) {
 		printk(KERN_DEBUG "writer task found: pid %d\n", task_buf->pid);
@@ -262,7 +289,7 @@ int sys_set_rotation(int degree) {
 		list_for_each_entry(bound_buf, &task_buf->bounds, list) {
 		 	if(flag == 1) break;
 			if (isInRange(bound_buf->degree, bound_buf->range)
-					&& isLockable(bound_buf->degree, bound_buf->range, 1)
+					&& isLockable_no_spin_lock(bound_buf->degree, bound_buf->range, 1)
 					&& bound_buf->is_locked == 0) {
 				count++;
 				flag = 1;
@@ -274,15 +301,15 @@ int sys_set_rotation(int degree) {
 			printk(KERN_DEBUG "reader task found: pid %d\n", task_buf->pid);
 			list_for_each_entry(bound_buf, &task_buf->bounds, list) {
 				if (isInRange(bound_buf->degree, bound_buf->range)
-					&& isLockable(bound_buf->degree, bound_buf->range, 0)
+					&& isLockable_no_spin_lock(bound_buf->degree, bound_buf->range, 0)
 					&& bound_buf->is_locked == 0) {
 					count++;
 				}
 			}
 		}
 	}
-	spin_unlock(&list_lock);
-
+//	spin_unlock(&list_lock);
+	spin_unlock(&locker);
 	// wake up every process for range check. NOTE: this is NOT blocking.
 	wake_up_queue();
 	spin_unlock(&set_rot_lock);
@@ -301,11 +328,11 @@ int sys_rotlock_read(int degree, int range) {
 	/////////////////////////
 	int ret = 0;
 	if(degree <0 || degree >=360 || range <=0 || range>= 180) return -1;
-	
-	spin_lock(&list_lock);
+	spin_lock(&locker);	
+//	spin_lock(&list_lock);
 	ret = put_task(&reader_list, current->pid, degree, range);
-	
-	spin_unlock(&list_lock);
+	spin_unlock(&locker);
+//	spin_unlock(&list_lock);
 	if(ret<0) return -1;// kmalloc error
 
 	printk(KERN_DEBUG "rotlock_read\n");
@@ -319,13 +346,13 @@ int sys_rotlock_read(int degree, int range) {
 		}
 		finish_wait(&read_q,&wait);
 	}
-
-	spin_lock(&list_lock);
-	set_bound_locked(&reader_list, current->pid, degree, range);
-	spin_unlock(&list_lock);
-
 	spin_lock(&locker);
-	spin_lock(&list_lock);
+
+//	spin_lock(&list_lock);
+	set_bound_locked(&reader_list, current->pid, degree, range);
+//	spin_unlock(&list_lock);
+
+//	spin_lock(&list_lock);
 	//Increment the number of locks at each degree.
 	//when read lock is locked, traverse the write_list and 
 	//if there is an overlapping waiting write_lock,
@@ -342,14 +369,13 @@ int sys_rotlock_read(int degree, int range) {
 			}
 		}
 	}
-
 	for(i = degree-range ; i <= degree+range ; i++) {
 		deg = convertDegree(i);
 		read_locked[deg]++;
 	}
 	printk(KERN_DEBUG "READ LOCKED R %d W %d WO %d\n", read_locked[degree], write_locked[degree], write_occupied[degree]);
 
-	spin_unlock(&list_lock);
+//	spin_unlock(&list_lock);
 	spin_unlock(&locker);
 	return 0;
 }
@@ -367,11 +393,12 @@ int sys_rotlock_write(int degree, int range) {
 	
 	if(degree <0 || degree >=360 || range <=0 || range>= 180) return -1;
 	printk(KERN_DEBUG "rotlock_write\n");
-
-	spin_lock(&list_lock);
+	spin_lock(&locker);
+//	spin_lock(&list_lock);
 	// put task into task_info_list
 	ret = put_task(&writer_list, current->pid, degree, range);
-	spin_unlock(&list_lock);
+	spin_unlock(&locker);
+//	spin_unlock(&list_lock);
 	if(ret<0) return -1;
 
 	//currently we are increasing for all write locks asked
@@ -379,7 +406,7 @@ int sys_rotlock_write(int degree, int range) {
 	//that have an overlap with the requested write lock and increament
 	//occupied each time we meet a read with an overlap
 	spin_lock(&locker);
-	spin_lock(&list_lock);
+//	spin_lock(&list_lock);
 	list_for_each_entry(task_buf,&reader_list, list){
 		list_for_each_entry(bound_buf, &task_buf->bounds, list) {
 		/////////////////////////////////////////
@@ -401,7 +428,7 @@ int sys_rotlock_write(int degree, int range) {
 			}
 		}
 	}
-	spin_unlock(&list_lock);
+//	spin_unlock(&list_lock);
 	spin_unlock(&locker);
 
 	while(!(isInRange(degree,range) && isLockable(degree, range,1))) {
@@ -413,12 +440,11 @@ int sys_rotlock_write(int degree, int range) {
 		}
 		finish_wait(&write_q,&wait);
 	}
-
-	spin_lock(&list_lock);
-	set_bound_locked(&writer_list, current->pid, degree, range);
-	spin_unlock(&list_lock);
-
 	spin_lock(&locker);
+//	spin_lock(&list_lock);
+	set_bound_locked(&writer_list, current->pid, degree, range);
+//	spin_unlock(&list_lock);
+
 	//Increment the number of locks at each degree.
 	for(i = degree-range ; i <= degree+range ; i++) {
 		deg = convertDegree(i);
@@ -439,16 +465,15 @@ int sys_rotunlock_read(int degree, int range) {
 	//////////////////////
 	
 	if(degree <0 || degree >=360 || range <=0 || range>= 180) return -1;
-	
-	spin_lock(&list_lock);
+	spin_lock(&locker);
+//	spin_lock(&list_lock);
 	// check if degree and range exists for given pid
 	if (remove_task(&reader_list, current->pid, degree, range) == 0) {
-		spin_unlock(&list_lock);
+//		spin_unlock(&list_lock);
+		spin_unlock(&locker);
 		return -1;
 	}
-	spin_unlock(&list_lock);
-
-	spin_lock(&locker);
+//	spin_unlock(&list_lock);
 
 	for(i = degree-range ; i <= degree+range ; i++) {
 		deg = convertDegree(i);
@@ -462,7 +487,7 @@ int sys_rotunlock_read(int degree, int range) {
 	//decrease the occupied array by 1 for the range of the write lock
 	//and decrease the state information of the waiting write lock by 1 (if it was 2 than to 1)
 	//
-	spin_lock(&list_lock);
+//	spin_lock(&list_lock);
 	list_for_each_entry(task_buf, &writer_list, list){
 		list_for_each_entry(bound_buf, &task_buf->bounds, list){
 			if(has_overlap(degree,range,bound_buf->degree,bound_buf->range) && (bound_buf->is_locked>=2)){
@@ -477,7 +502,7 @@ int sys_rotunlock_read(int degree, int range) {
 		}
 	}
 
-	spin_unlock(&list_lock);
+//	spin_unlock(&list_lock);
 	 printk(KERN_DEBUG "READ UNLOCKED R %d W %d WO %d\n", read_locked[degree], write_locked[degree], write_occupied[degree]);
 	spin_unlock(&locker);
 	wake_up_queue();
@@ -492,15 +517,16 @@ int sys_rotunlock_write(int degree, int range) {
 	if(degree <0 || degree >=360 || range <=0 || range>= 180) return -1;
 	printk(KERN_DEBUG "rotunlock_write\n");
 	//Increment the number of locks at each degree.
-	spin_lock(&list_lock);
+	spin_lock(&locker);
+//	spin_lock(&list_lock);
 	// check if degree and range exists for given pid
 	if (remove_task(&writer_list, current->pid, degree, range) == 0) {
-		spin_unlock(&list_lock);
+//		spin_unlock(&list_lock);
+		spin_unlock(&locker);
 		return -1; 
 	}
-	spin_unlock(&list_lock);
+//	spin_unlock(&list_lock);
 
-	spin_lock(&locker);
 	for(i = degree-range ; i <= degree+range ; i++) {
 		deg = convertDegree(i);
 		write_locked[deg]--;
@@ -513,21 +539,7 @@ int sys_rotunlock_write(int degree, int range) {
 	//decrease the occupied array by 1 for the range of the write lock
 	//and decrease the state information of the waiting write lock by 1 (if it was 2 than to 1)
 	//
-/*
-	list_for_each_entry(task_buf, &writer_list, list){
-		list_for_each_entry(bound_buf, &task_buf->bounds, list){
-			if(has_overlap(degree,range,bound_buf->degree,bound_buf->range) && (bound_buf->is_locked>=2)){
-				for(i=(bound_buf->degree)-(bound_buf->range);i<=(bound_buf->degree)+(bound_buf->range);i++){
-					deg=convertDegree(i);
-					write_occupied[deg]--;
-				}
-				if(bound_buf->is_locked == 2) bound_buf->is_locked = 0;
-				else bound_buf->is_locked -= 1;
-			}
-		}
-	}
-*/
- 	printk(KERN_DEBUG "WRITE UNLOCKED R %d W %d WO %d\n", read_locked[degree], write_locked[degree], write_occupied[degree]);
+	printk(KERN_DEBUG "WRITE UNLOCKED R %d W %d WO %d\n", read_locked[degree], write_locked[degree], write_occupied[degree]);
 	spin_unlock(&locker);
 	wake_up_queue();
 	return 0;
@@ -573,7 +585,6 @@ int remove_bound_exit(struct list_head *bounds, int idx) {
 				//////////////////////////////
 				//this is for decreasing occupied
 				//for the amount of is_locked decrease occupied
-				printk(KERN_DEBUG "Status : %d\n", bound_buf->is_locked);
 				for(k=bound_buf->is_locked; k>1; k--){
 			 		printk(KERN_DEBUG "W Kill%d %d %d\n",bound_buf->is_locked,bound_buf->degree, bound_buf->range) ;
 					for(j=bound_buf->degree-bound_buf->range;j<=bound_buf->degree+bound_buf->range;j++) {
@@ -617,10 +628,12 @@ int remove_task_exit(struct list_head *tasks, int pid, int rw) {
 }
 
 void exit_rotlock (void) {
-	spin_lock(&list_lock);
+	spin_lock(&locker);
+//	spin_lock(&list_lock);
 	remove_task_exit(&reader_list, current -> pid,0);
 	remove_task_exit(&writer_list, current -> pid,1);
-	spin_unlock(&list_lock);
+	spin_unlock(&locker);
+//	spin_unlock(&list_lock);
 	wake_up_queue();
 }
 
