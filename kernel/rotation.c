@@ -109,6 +109,7 @@ int remove_task(struct list_head *tasks, int pid, int degree, int range) {
 			break;
 		}
 	}
+	printk(KERN_DEBUG, "flag : %d\n" , flag);
 	return status&flag;
 }
 
@@ -437,18 +438,7 @@ int sys_rotunlock_read(int degree, int range) {
 	struct bound *bound_buf;
 	//////////////////////
 	
-	printk(KERN_DEBUG "rotunlock_read\n");
 	if(degree <0 || degree >=360 || range <=0 || range>= 180) return -1;
-	while(!(isInRange(degree,range) )) {
-		prepare_to_wait(&read_q,&wait,TASK_INTERRUPTIBLE);
-		schedule();
-		if(signal_pending(current)) {
-			remove_wait_queue(&read_q, &wait);
-			return 0;
-		}
-		finish_wait(&read_q,&wait);
-	}
-
 	
 	spin_lock(&list_lock);
 	// check if degree and range exists for given pid
@@ -501,15 +491,6 @@ int sys_rotunlock_write(int degree, int range) {
 	
 	if(degree <0 || degree >=360 || range <=0 || range>= 180) return -1;
 	printk(KERN_DEBUG "rotunlock_write\n");
-	while(!(isInRange(degree,range))) {
-		prepare_to_wait(&read_q,&wait,TASK_INTERRUPTIBLE);
-		schedule();
-		if(signal_pending(current)) {
-			remove_wait_queue(&read_q, &wait);
-			return 0;
-		}
-		finish_wait(&read_q,&wait);
-	}
 	//Increment the number of locks at each degree.
 	spin_lock(&list_lock);
 	// check if degree and range exists for given pid
