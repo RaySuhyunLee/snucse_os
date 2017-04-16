@@ -6,10 +6,12 @@ Implement three global variables to indicate the ranges of current locks. For ch
 2. `write_locked[360]` contains the range of current write locks
 3. `write_occupied[360]` contains the range of pending write locks. Made for preventing Write lock starvation. 
 
-Maintain 2 Wait_Queue 'read_q' 'write_q' for pending locks
+Maintain two Wait_Queue 'read_q' 'write_q' for pending locks
 
-Manage 2 lists 'reader_list' 'writer_list' that contains the information of acquired and pending locks.
-//Soo Hyun should explain why we put in all locks rather than just acquired locks
+Manage two lists 'reader_list' 'writer_list' that contains the information of acquired and pending locks.
+These lists are used for two perposes.
+1. To predict which process should grab the lock when device angle is changed.
+2. To check if the bound(degree, range) is valid(check if it exists) for given process on a unlock request.
 
 Introduce 2 stuctures 'task_info' and 'bound' that contains the information of requested locks
 1. `task_info` maintains the PID of the process and a list of bounds(range and degree) of locks from the process
@@ -31,47 +33,44 @@ Common Features
 2.  Modify the global variables - to be explained in the following contents 
 
 System call 'set_rotation'
-//TODO need to explain how we get the return value from this system call SOO HYUN
+1. set `_degree`, which is globally defined variable for device angle, to new value.
+2. traverse for every pre-requested boundaries(waiting for lock or already locked) and predict how many lockes will be grabed.
+3. wakes up whole processes which are waiting for lock. (each process than checks itself if it can grab the lock)
 
 System call 'rotlock_read' 
-1.  check if the current asked lock 'isLockable' and the degree 'isInRange'
+1.  check if the requested lock is 'isLockable=true' and the degree is 'isInRange=true'
 2.  If both conditions are satisfied, the lock is acquired and modifies the global variables. 
 3.  If not, the lock goes into an sleep state.
 
 **NOTE** For 'rotlock_read', we modify 'write_occupied' when the read lock is acquired. When a read lock is acquired, we traverse the waiting write locks and if there exists an overlap, we increase 'write_occupied' for the boundaries of the overlapping write locks.
 
 System call 'rotlock_write' 
-1.  check if the current asked lock 'isLockable' and the degree 'isInRange'
+1.  check if the requested lock is 'isLockable=true' and the degree is 'isInRange=true'
 2.  If both conditions are satisfied, the lock is acquired and modifies the global variables. 
 3.  If not, the lock goes into an sleep state.
 
 **NOTE** For 'rotlock_write', we modify 'write_occupied' when the write lock is waiting. When a write lock is waiting, we traverse the acquired read locks and it there exists an overlap, we increase 'write_occupied' for the boundary of the acquired write lock for each overlapping read locks.
 
 System call 'rotunlock_read'
-1.  check if the required unlock actually exists
-2.  If the lock exists the lock is removed and global variables are modified. 
+1.  check if the required bound(degree and range) actually exists
+2.  If the lock exists it is removed and global variables are modified. 
 
 System call 'rotunlock_write'
-1.  check if the required unlock actually exists
-2.  If the lock exists the lock is removed and global variables are modified. 
+1.  check if the required bound(degree and range) actually exists
+2.  If the lock exists it is removed and global variables are modified. 
 
-**NOTE** The difference between 'rotunlock_read' and 'rotunlock_write' is that, for 'rotunlock_read', we have to check if it has an overlap with a waiting write lock. If there is an ovelap, we have to decrease the 'write_occupied' for the boundary of the ovelapping write lock, which is currently waiting. 
+**NOTE** The difference between 'rotunlock_read' and 'rotunlock_write' is that, for 'rotunlock_read', we have to check if it has an overlap with a waiting write lock. If there is an ovelap, we have to decrease the 'write_occupied' for the boundary of the ovelapping write lock, which is currently waiting.
 
-Overall design is depicted in the diagram below.
-//TODO
-
-
-**NOTE** The system call never allocate system call number 384. If a function f allocate that number, then f is called as soon as booting. We assumed that it is already reserved and called right after booting. That's why we register rotunlock_write to system call number 385.
+**NOTE** You should never allocate system call to number 384. For some reason, when a system call is allocated with that number, it is continuously called as soon as kernel boots. We assumed that the number is already reserved and is called right after booting. That's why we register rotunlock_write to system call number 385.
 Caution : You must write CALL(sys_ni_syscall)	between CALL(sys_rotlock_write) and CALL(sys_rotunlock_write) in arch/arm/kernel/calls.S
 
 ## Policies
+![](https://github.com/swsnu/os-team20/blob/proj2/fig_1.PNG)
+![](https://github.com/swsnu/os-team20/blob/proj2/fig_2.PNG)
+![](https://github.com/swsnu/os-team20/blob/proj2/fig_3.PNG)
 
-//TODO
-Insert Figure from PPT <= I tried but I failed. I do not know why
 
-
-
-## Lessons Learned <= fill in more OS relevant 
+## Lessons Learned 
 * Early start does not guarantee early end.
 * 밤을 많이 새면 정신이 아찔해진다.
 * printk()를 너무 많이 쓰면 커널 패닉이 발생한다.
