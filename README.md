@@ -1,7 +1,7 @@
 # os-team20
 
 ## High-Level Design & Implementation
-Implement three global variables to indicate the ranges of current locks.
+Implement three global variables to indicate the ranges of current locks. For checking whether waiting lock can acquire in constant time.
 1. `read_locked[360]` contains the range of current read locks  
 2. `write_locked[360]` contains the range of current write locks
 3. `write_occupied[360]` contains the range of pending write locks. Made for preventing Write lock starvation. 
@@ -15,7 +15,7 @@ Introduce 2 stuctures 'task_info' and 'bound' that contains the information of r
 1. `task_info` maintains the PID of the process and a list of bounds(range and degree) of locks from the process
 2. `bound` maintains the degree and range of a lock
 
-## System Calls (High Level Design)
+## Function (High Level Design)
 We introduced 5 new System calls 'set_rotation' 'rotlock_read' 'rotlock_write' 'rotunlock_read' 'rotunlock_write'
 
 Additional Functions (not system calls)
@@ -44,19 +44,25 @@ System call 'rotlock_write'
 3.  If not, the lock goes into an sleep state.
 
 System call 'rotunlock_read'
-
+//TODO
 System call 'rotunlock_write'
-
+//TODO
 Overall design is depicted in the diagram below.
+//TODO
 
 
-**NOTE** The system call never allocate system call number 384. If a function f allocate that number, then f is called as soon as booting. We assumed that it is already reserved. That's why we register rotunlock_write to system call number 385.
-Caution : You must write syscall_nil in calls.S 384 위치.
+**NOTE** The system call never allocate system call number 384. If a function f allocate that number, then f is called as soon as booting. We assumed that it is already reserved and called right after booting. That's why we register rotunlock_write to system call number 385.
+Caution : You must write CALL(sys_ni_syscall)	between CALL(sys_rotlock_write) and CALL(sys_rotunlock_write) in arch/arm/kernel/calls.S
 
 ## Policies
 
+//TODO
+Insert Figure from PPT <= I tried but I failed. I do not know why
 
-## Lessons Learned
+
+
+## Lessons Learned <= fill in more OS relevant 
+* Early start does not guarantee early end.
 * 밤을 많이 새면 정신이 아찔해진다.
 * printk()를 너무 많이 쓰면 커널 패닉이 발생한다.
 * 귀찮더라도 한번에 다 할 생각 하지 말고 기능 하나 짤때마다 빌드하고 테스트하고 넘어가야 한다.
