@@ -70,8 +70,13 @@ ___
 Caution : You must write CALL(sys_ni_syscall)	between CALL(sys_rotlock_write) and CALL(sys_rotunlock_write) in arch/arm/kernel/calls.S
 
 ## Policies
+* Lock can acquire only on that any lock is not acquired and the degree is in lock range.
+* If read lock is acquired, overlapped waiting write locks are occupied states.
 ![](https://github.com/swsnu/os-team20/blob/proj2/fig_1.PNG)
+* occupied write lock can occur if new write lock comes when overlapped acquired read lock exist.
+* occupied write lock can occur if a write lock is waiting, and new read lock acquire and it is overlapped.
 ![](https://github.com/swsnu/os-team20/blob/proj2/fig_2.PNG)
+* occupied write lock can change waiting state when all of overlapped read lock are releasing or killed. 
 ![](https://github.com/swsnu/os-team20/blob/proj2/fig_3.PNG)
 
 
