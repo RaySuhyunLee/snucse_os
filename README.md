@@ -79,4 +79,5 @@ Caution : You must write CALL(sys_ni_syscall)	between CALL(sys_rotlock_write) an
 * Early start does not guarantee early end.
 * 밤을 많이 새면 정신이 아찔해진다.
 * printk()를 너무 많이 쓰면 커널 패닉이 발생한다.
+* 리눅스 커널 개발자들을 존경해야한다. 특히 synchronization issue에 대해서...
 * 귀찮더라도 한번에 다 할 생각 하지 말고 기능 하나 짤때마다 빌드하고 테스트하고 넘어가야 한다.
