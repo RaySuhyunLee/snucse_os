@@ -31,22 +31,32 @@ Common Features
 2.  Modify the global variables - to be explained in the following contents 
 
 System call 'set_rotation'
-//need to explain how we get the return value from this system call SOO HYUN
+//TODO need to explain how we get the return value from this system call SOO HYUN
 
 System call 'rotlock_read' 
 1.  check if the current asked lock 'isLockable' and the degree 'isInRange'
 2.  If both conditions are satisfied, the lock is acquired and modifies the global variables. 
 3.  If not, the lock goes into an sleep state.
 
+**NOTE** For 'rotlock_read', we modify 'write_occupied' when the read lock is acquired. When a read lock is acquired, we traverse the waiting write locks and if there exists an overlap, we increase 'write_occupied' for the boundaries of the overlapping write locks.
+
 System call 'rotlock_write' 
 1.  check if the current asked lock 'isLockable' and the degree 'isInRange'
 2.  If both conditions are satisfied, the lock is acquired and modifies the global variables. 
 3.  If not, the lock goes into an sleep state.
 
+**NOTE** For 'rotlock_write', we modify 'write_occupied' when the write lock is waiting. When a write lock is waiting, we traverse the acquired read locks and it there exists an overlap, we increase 'write_occupied' for the boundary of the acquired write lock for each overlapping read locks.
+
 System call 'rotunlock_read'
-//TODO
+1.  check if the required unlock actually exists
+2.  If the lock exists the lock is removed and global variables are modified. 
+
 System call 'rotunlock_write'
-//TODO
+1.  check if the required unlock actually exists
+2.  If the lock exists the lock is removed and global variables are modified. 
+
+**NOTE** The difference between 'rotunlock_read' and 'rotunlock_write' is that, for 'rotunlock_read', we have to check if it has an overlap with a waiting write lock. If there is an ovelap, we have to decrease the 'write_occupied' for the boundary of the ovelapping write lock, which is currently waiting. 
+
 Overall design is depicted in the diagram below.
 //TODO
 
