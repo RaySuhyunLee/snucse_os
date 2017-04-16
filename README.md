@@ -1,5 +1,7 @@
 # os-team20
 
+cf) Our selector.c and trial.c function essentially need an argument.
+
 ## High-Level Design & Implementation
 * We implemented three global variables to indicate the ranges of current locks. This is to check whether read/write lock can be acquired, in _**constant time**_.
   1. `read_locked[360]` contains the range of current read locks  
