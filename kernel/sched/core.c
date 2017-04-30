@@ -1717,7 +1717,7 @@ void sched_fork(struct task_struct *p)
 		p->sched_reset_on_fork = 0;
 	}
 	
-	if (!rt_prio(p->prio))
+	if (!rt_prio(p->prio)) {
 		if(wrr_prio(p->prio))						// Jae_D
 			p->sched_class = &wrr_sched_class;
 		else
