@@ -3703,7 +3703,7 @@ void set_user_nice(struct task_struct *p, long nice)
 	 * it wont have any effect on scheduling until the task is
 	 * SCHED_FIFO/SCHED_RR:
 	 */
-	if (task_has_rt_policy(p)) {
+	if (task_has_rt_policy(p)) {	// TODO is this required for WRR, too?
 		p->static_prio = NICE_TO_PRIO(nice);
 		goto out_unlock;
 	}
@@ -3896,6 +3896,7 @@ static bool check_same_owner(struct task_struct *p)
 	return match;
 }
 
+// TODO LOTS AND LOTS OF CODES TO CHANGE to support WRR
 static int __sched_setscheduler(struct task_struct *p, int policy,
 				const struct sched_param *param, bool user)
 {
@@ -3917,8 +3918,8 @@ recheck:
 		policy &= ~SCHED_RESET_ON_FORK;
 
 		if (policy != SCHED_FIFO && policy != SCHED_RR &&
-				policy != SCHED_NORMAL && policy != SCHED_BATCH &&
-				policy != SCHED_IDLE)
+				policy != SCHED_WRR && policy != SCHED_NORMAL && // RaySuhyunLee: Add SCHED_WRR
+				policy != SCHED_BATCH && policy != SCHED_IDLE)
 			return -EINVAL;
 	}
 
@@ -3929,7 +3930,7 @@ recheck:
 	 */
 	if (param->sched_priority < 0 ||
 	    (p->mm && param->sched_priority > MAX_USER_RT_PRIO-1) ||
-	    (!p->mm && param->sched_priority > MAX_RT_PRIO-1))
+	    (!p->mm && param->sched_priority > MAX_RT_PRIO-1)) // TODO also check priority range for SCHED_WRR
 		return -EINVAL;
 	if (rt_policy(policy) != (param->sched_priority != 0))
 		return -EINVAL;
@@ -3950,6 +3951,8 @@ recheck:
 			if (param->sched_priority > p->rt_priority &&
 			    param->sched_priority > rlim_rtprio)
 				return -EPERM;
+		} else if (policy == SCHED_WRR) {
+			// TODO support unprivileged WRR tasks to decrease priority
 		}
 
 		/*
@@ -4607,6 +4610,10 @@ SYSCALL_DEFINE1(sched_get_priority_max, int, policy)
 	case SCHED_RR:
 		ret = MAX_USER_RT_PRIO-1;
 		break;
+	/* UNCOMMENT BELOW WHEN WRR priority range IMPLEMENTED */
+	/* case SCHED_WRR:
+		ret = MAX_USER_WRR_PRIO-1;
+		break; */
 	case SCHED_NORMAL:
 	case SCHED_BATCH:
 	case SCHED_IDLE:
@@ -4632,6 +4639,10 @@ SYSCALL_DEFINE1(sched_get_priority_min, int, policy)
 	case SCHED_RR:
 		ret = 1;
 		break;
+	/* UNCOMMENT BELOW WHEN WRR priority range IMPLEMENTED */
+	/*case SHCED_WRR:
+		ret = MIN_USER_WRR_PRIO;
+		break;*/
 	case SCHED_NORMAL:
 	case SCHED_BATCH:
 	case SCHED_IDLE:
