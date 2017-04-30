@@ -5,6 +5,7 @@
 #include "sched.h"
 #include "wrr.h"
 
+#define WRR_TIMESLICE 10
 
 int wrr_set_weight(struct sched_wrr_entity * entity, int weight) {
 	if (weight > WRR_MAX_WEIGHT || weight < WRR_MIN_WEIGHT)
@@ -248,7 +249,7 @@ const struct sched_class wrr_sched_class = {
 	//.pre_schedule		= pre_schedule_wrr,
 	//.post_schedule		= post_schedule_wrr,
 	//.task_woken		= task_woken_wrr,
-	.switched_from		= switched_from_wrr,
+.switched_from		= switched_from_wrr,
 #endif
 
 	.set_curr_task          = set_curr_task_wrr,
