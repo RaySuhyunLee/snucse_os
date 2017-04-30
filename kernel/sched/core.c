@@ -1716,10 +1716,13 @@ void sched_fork(struct task_struct *p)
 		 */
 		p->sched_reset_on_fork = 0;
 	}
-
+	
 	if (!rt_prio(p->prio))
-		p->sched_class = &fair_sched_class;
-
+		if(wrr_prio(p->prio))						// Jae_D
+			p->sched_class = &wrr_sched_class;
+		else
+			p->sched_class = &fair_sched_class;
+	}
 	if (p->sched_class->task_fork)
 		p->sched_class->task_fork(p);
 
@@ -2915,8 +2918,13 @@ pick_next_task(struct rq *rq)
 	 * Optimization: we know that if all tasks are in
 	 * the fair class we can call that function directly:
 	 */
+	if(likely(rq->nr_running == rq->wrr.h_nr_running)) { //Jae_D
+		p = wrr_sched_class.pick_next_task(rq);
+		if(likely(p))
+			return p;
+	}
 	if (likely(rq->nr_running == rq->cfs.h_nr_running)) {
-		p = fair_sched_class.pick_next_task(rq);
+		p = fair_sched_class.pick_next_task(rq); 
 		if (likely(p))
 			return p;
 	}
@@ -3659,6 +3667,8 @@ void rt_mutex_setprio(struct task_struct *p, int prio)
 
 	if (rt_prio(prio))
 		p->sched_class = &rt_sched_class;
+	else if (wrr_prio(prio)) //Jae_D
+		p->sched_class = &wrr_sched_class;
 	else
 		p->sched_class = &fair_sched_class;
 
@@ -3853,6 +3863,13 @@ __setscheduler(struct rq *rq, struct task_struct *p, int policy, int prio)
 	p->prio = rt_mutex_getprio(p);
 	if (rt_prio(p->prio)) {
 		p->sched_class = &rt_sched_class;
+#ifdef CONFIG_SCHED_HMP
+		if (cpumask_equal(&p->cpus_allowed, cpu_all_mask))
+			do_set_cpus_allowed(p, &hmp_slow_cpu_mask);
+#endif
+	}
+	else if(wrr_prio(p->prio)) {//Jae_D
+		p->sched_class = &wrr_sched_class;
 #ifdef CONFIG_SCHED_HMP
 		if (cpumask_equal(&p->cpus_allowed, cpu_all_mask))
 			do_set_cpus_allowed(p, &hmp_slow_cpu_mask);
@@ -7108,7 +7125,7 @@ void __init sched_init(void)
 	/*
 	 * During early bootup we pretend to be a normal task:
 	 */
-	current->sched_class = &fair_sched_class;
+	current->sched_class = &wrr_sched_class; //Jae_D
 
 #ifdef CONFIG_SMP
 	zalloc_cpumask_var(&sched_domains_tmpmask, GFP_NOWAIT);
@@ -7117,7 +7134,8 @@ void __init sched_init(void)
 		zalloc_cpumask_var(&cpu_isolated_map, GFP_NOWAIT);
 	idle_thread_set_boot_cpu();
 #endif
-	init_sched_fair_class();
+	init_sched_wrr_class(); //Jae_D
+	//	init_sched_fair_class();
 
 	scheduler_running = 1;
 }
@@ -7782,7 +7800,7 @@ static int cpu_cgroup_can_attach(struct cgroup *cgrp,
 			return -EINVAL;
 #else
 		/* We don't support RT-tasks being in separate groups */
-		if (task->sched_class != &fair_sched_class)
+		if (task->sched_class != &fair_sched_class && task->sched_class != &wrr_sched_class) //Jae_D
 			return -EINVAL;
 #endif
 	}
