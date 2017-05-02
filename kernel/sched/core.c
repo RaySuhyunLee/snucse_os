@@ -909,6 +909,13 @@ static inline int normal_prio(struct task_struct *p)
 	return prio;
 }
 
+struct inline int wrr_prio(struct task_struct *p) {
+	//TODO
+	//
+	return prio;
+}
+
+
 /*
  * Calculate the current priority, i.e. the priority
  * taken into account by the scheduler. This value might
@@ -3703,7 +3710,7 @@ void set_user_nice(struct task_struct *p, long nice)
 	 * it wont have any effect on scheduling until the task is
 	 * SCHED_FIFO/SCHED_RR:
 	 */
-	if (task_has_rt_policy(p)) {	// TODO is this required for WRR, too?
+	if (task_has_rt_policy(p)) {	// SOLVED : maybe we don't need to modify nice cuz wrr does not consider nice
 		p->static_prio = NICE_TO_PRIO(nice);
 		goto out_unlock;
 	}
@@ -3858,7 +3865,8 @@ __setscheduler(struct rq *rq, struct task_struct *p, int policy, int prio)
 {
 	p->policy = policy;
 	p->rt_priority = prio;
-	p->normal_prio = normal_prio(p);
+	p->normal_prio = normal_prio(p); //TODO WRR PRIO
+	p->wrr_prio = wrr_prio(p);
 	/* we are holding p->pi_lock already */
 	p->prio = rt_mutex_getprio(p);
 	if (rt_prio(p->prio)) {
@@ -3929,11 +3937,12 @@ recheck:
 	 * SCHED_BATCH and SCHED_IDLE is 0.
 	 */
 	if (param->sched_priority < 0 ||
-	    (p->mm && param->sched_priority > MAX_USER_RT_PRIO-1) ||
-	    (!p->mm && param->sched_priority > MAX_RT_PRIO-1)) // TODO also check priority range for SCHED_WRR
+	    (p->mm && param->sched_priority > MAX_USER_RT_PRIO-1) || //p->mm is binary so we need to more state.
+	    (!p->mm && param->sched_priority > MAX_RT_PRIO-1))  
+			return -EINVAL;
+	if (rt_policy(policy) != (param->sched_priority != 0)) 
 		return -EINVAL;
-	if (rt_policy(policy) != (param->sched_priority != 0))
-		return -EINVAL;
+	 //SOLVED  vlid priority for SCHED_WRR is also 0
 
 	/*
 	 * Allow unprivileged RT tasks to decrease priority:
@@ -3951,12 +3960,10 @@ recheck:
 			if (param->sched_priority > p->rt_priority &&
 			    param->sched_priority > rlim_rtprio)
 				return -EPERM;
-		} else if (policy == SCHED_WRR) {
-			// TODO support unprivileged WRR tasks to decrease priority
-		}
+		} //SOLVED we do not need to add else if (policy == SCHED_WRR) 
 
 		/*
-		 * Treat SCHED_IDLE as nice 20. Only allow a switch to
+		 * Treat SCHED_IDLE as nice 20(can_nice). Only allow a switch to
 		 * SCHED_NORMAL if the RLIMIT_NICE would normally permit it.
 		 */
 		if (p->policy == SCHED_IDLE && policy != SCHED_IDLE) {
@@ -4019,7 +4026,7 @@ recheck:
 		}
 	}
 #endif
-
+	//__setscheduler's conclusion
 	/* recheck policy now with rq lock held */
 	if (unlikely(oldpolicy != -1 && oldpolicy != p->policy)) {
 		policy = oldpolicy = -1;
@@ -4027,7 +4034,7 @@ recheck:
 		goto recheck;
 	}
 	on_rq = p->on_rq;
-	running = task_current(rq, p);
+	running = task_current(rq, p); //c JaeD rq->curr == p
 	if (on_rq)
 		dequeue_task(rq, p, 0);
 	if (running)
@@ -4037,14 +4044,14 @@ recheck:
 
 	oldprio = p->prio;
 	prev_class = p->sched_class;
-	__setscheduler(rq, p, policy, param->sched_priority);
+	__setscheduler(rq, p, policy, param->sched_priority); // c JaeD : switch to FAIR
 
 	if (running)
 		p->sched_class->set_curr_task(rq);
 	if (on_rq)
 		enqueue_task(rq, p, 0);
 
-	check_class_changed(rq, p, prev_class, oldprio);
+	check_class_changed(rq, p, prev_class, oldprio); //c JaeD : maybe it is change policy`
 	task_rq_unlock(rq, p, &flags);
 
 	rt_mutex_adjust_pi(p);
