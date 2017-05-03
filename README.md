@@ -1,102 +1,27 @@
-# os-team20
+# os-team20 Project 3 : Weighted Round-Robin(WRR) Scheduler
+## Spec.
+Implement WRR scheduler of which policy is 
 
-## How to Build
-Building the kernel is simple. Just type
-```sh
-$ build
-```
-on the top directory of this repo.
 
-To build the test code, type
-```sh
-$ sh test/build.sh test1.c
-```
-on the top directory. The executable will be located in "test" directory.
+## 1. Registering WRR in core.c
+Initial scheduler has two policies, Real Time Scheduler and Fair Scheduler(cfs). We need to insert between two polices. 
+
+1. The new scheduling policy should serve as the default scheduling policy for swapper and all of its descendants (e.g. systemd and kthread).
+2. The base time slice (quantum) should be 10ms. Weights of tasks can range between 1 and 20 (inclusively). A task's time slice is determined by its weight multiplied by the base time slice. The default weight of tasks should be 10 (a 100ms time slice).
+3. If the weight of a task currently on a CPU is changed, it should finish its time quantum as it was before the weight change (i.e., increasing the weight of a task currently on a CPU does not extend its current time quantum).
+4. When deciding which CPU a task should be assigned to, it should be assigned to the CPU with the smallest total weight (i.e., sum of the weights of the tasks on the CPU's run queue).
+5. Periodic load balancing should be implemented such that a single task from the run queue with the highest total weight should be moved to the run queue with the lowest total weight, provided there exists a task in the highest run queue that can be moved to the lowest run queue without causing the lowest run queue's total weight to become greater than or equal to the highest run queue's total weight. The task that should be moved is the highest weighted eligible task which can be moved without causing the weight imbalance to reverse. Tasks that are currently running are not eligible to be moved and some tasks may have restrictions on which CPU they can be run on. Load balancing should be attempted every 2000ms.
+
 
 ## High-Level Design & Implementation
-System call ptree[sys_ptree(`380`)] is implemented using recursive strategy. The algorithm consists of three parts.
-1. Start with `init_task`, which is the initial task with pid 0.
-2. Given a task, push it into the buffer
-3. Repeat `2 and 3` for every child process and halt.
 
-Overall design is depicted in the diagram below.  
-![](https://github.com/swsnu/os-team20/blob/master/Proj1%20Diagram.png)
 
-To avoid using global variable and achieve better design, we used our own structure named `SearchResult` to manage prinfo values. It's a basic implementation of array list.
-```c
-struct SearchResult {
-	struct prinfo *data; // pointer to prinfo array
-	int max_size;        // length of <data>
-	int count;           // actual number of prinfo elements
-};
-```
+
 
 ## Lessons Learned
 * 프로젝트는 역시 일찍 하는 것이 좋다.
 * 커널패닉은 고통스럽지만 printk()와 함께라면 두렵지 않다.
 * 손가락부터 움직여선 안되고 반드시 먼저 생각하고 코딩해야 한다.
-
-## 자주 쓰는 커맨드
-
-### SDB 사용하는 법
-먼저 정상적으로 artik 부팅하고 root로 로그인, 다음 커맨드를 입력.
-```sh
-direct_set_debug.sh --sdb-set
-```
-
-우분투 환경에서 sdb root로 전환 후 push
-```sh
-sdb root on
-push [원본파일] [destination]
-```
-
-### printk 출력 레벨 변경
-```sh
-echo 8 > /proc/sys/kernel/printk
-```
-이렇게 하면 모든 메시지가 콘솔에 출력됨
-
-## How To Register System Call
-### 1. Increment the number of System calls
-in file: "arch/arm/include/asm/unistd.h"
-``` c
-#define __NR_syscalls  (N)
-```
-to
-```c
-#define __NR_syscalls  (N+4)
-```
-Total number of system calls must be a multiplication of 4.
-
-### 2. assign system call number
-in file: "arch/arm/include/uapi/asm/unistd.h"
-add
-```c
-#define __NR_myfunc      (__NR_SYSCALL_BASE+ #) 
-```
-
-### 3. make asmlinkage function
-in file: "include/linux/syscalls.h"
-```c
-asmlinkage int my_func()  // if no parameter then write 'void' 
-```
-
-### 4. add to system call table
-in file: "arch/arm/kernel/calls.S"
-```
-call(sys_myfunc)
-```
-
-### 5. Revise Makefile
-in file: "kernel/Makefile"
-```
-obj -y = ...  ptree.o
-```
-
-### etc.
-in file: "kernel/myfunc.c"  
-the name of function must be sys_myfunc()
-
 
 
 
