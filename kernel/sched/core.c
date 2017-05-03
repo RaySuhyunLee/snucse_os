@@ -1716,15 +1716,11 @@ void sched_fork(struct task_struct *p)
 		 */
 		p->sched_reset_on_fork = 0;
 	}
+	if(p->policy == SCHED_WRR) //JaeD
+		p->sched_class = &wrr_sched_class;
+	else if (!rt_prio(p->prio))
+		p->sched_class = &fair_sched_class;
 	
-	if (!rt_prio(p->prio)) {
-		if(p->policy == SCHED_WRR){ //JaeD
-			p->sched_class = &wrr_sched_class;
-		}
-		else{
-			p->sched_class = &fair_sched_class;
-		}
-	}
 	if (p->sched_class->task_fork)
 		p->sched_class->task_fork(p);
 
