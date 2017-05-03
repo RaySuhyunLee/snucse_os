@@ -7,6 +7,11 @@ Our scheduler basically follows T.A's policy.
 ## High-Level Design & Implementation
 currently developing...
 
+## 2. Investigation
+
+
+## 3. Improvements
+
 ## Lessons Learned
 * Most build errors are your eye problems. Read error messages carefully!
 * Reading 20k lines of code is nothing. Implementing or fixing it is A THING.
