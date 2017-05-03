@@ -325,6 +325,8 @@ struct wrr_rq {
 	struct load_weight load;
 	unsigned int wrr_nr_running, h_nr_running;
 
+	struct list_head queue;
+
 	u64 exec_clock;
 	u64 min_vruntime;
 #ifndef CONFIG_64BIT
