@@ -909,13 +909,6 @@ static inline int normal_prio(struct task_struct *p)
 	return prio;
 }
 
-struct inline int wrr_prio(struct task_struct *p) {
-	//TODO
-	//
-	return prio;
-}
-
-
 /*
  * Calculate the current priority, i.e. the priority
  * taken into account by the scheduler. This value might
@@ -1686,10 +1679,10 @@ void set_numabalancing_state(bool enabled)
  * fork()/clone()-time setup:
  */
 void sched_fork(struct task_struct *p)
-{
+{	
 	unsigned long flags;
 	int cpu = get_cpu();
-
+//TODO
 	__sched_fork(p);
 	/*
 	 * We mark the process as running here. This guarantees that
@@ -1708,7 +1701,7 @@ void sched_fork(struct task_struct *p)
 	 */
 	if (unlikely(p->sched_reset_on_fork)) {
 		if (task_has_rt_policy(p)) {
-			p->policy = SCHED_NORMAL;
+			p->policy = SCHED_WRR; // JaeD
 			p->static_prio = NICE_TO_PRIO(0);
 			p->rt_priority = 0;
 		} else if (PRIO_TO_NICE(p->static_prio) < 0)
@@ -1725,10 +1718,12 @@ void sched_fork(struct task_struct *p)
 	}
 	
 	if (!rt_prio(p->prio)) {
-		if(wrr_prio(p->prio))						// Jae_D
+		if(p->policy == SCHED_WRR){ //JaeD
 			p->sched_class = &wrr_sched_class;
-		else
+		}
+		else{
 			p->sched_class = &fair_sched_class;
+		}
 	}
 	if (p->sched_class->task_fork)
 		p->sched_class->task_fork(p);
@@ -3672,9 +3667,9 @@ void rt_mutex_setprio(struct task_struct *p, int prio)
 	if (running)
 		p->sched_class->put_prev_task(rq, p);
 
-	if (rt_prio(prio))
+	if (rt_prio(prio) && p->policy != SCHED_WRR)
 		p->sched_class = &rt_sched_class;
-	else if (wrr_prio(prio)) //Jae_D
+	else if (p->policy == SCHED_WRR) //Jae_D
 		p->sched_class = &wrr_sched_class;
 	else
 		p->sched_class = &fair_sched_class;
@@ -3710,7 +3705,7 @@ void set_user_nice(struct task_struct *p, long nice)
 	 * it wont have any effect on scheduling until the task is
 	 * SCHED_FIFO/SCHED_RR:
 	 */
-	if (task_has_rt_policy(p)) {	// SOLVED : maybe we don't need to modify nice cuz wrr does not consider nice
+	if (task_has_rt_policy(p)) {	
 		p->static_prio = NICE_TO_PRIO(nice);
 		goto out_unlock;
 	}
@@ -3866,17 +3861,16 @@ __setscheduler(struct rq *rq, struct task_struct *p, int policy, int prio)
 	p->policy = policy;
 	p->rt_priority = prio;
 	p->normal_prio = normal_prio(p); //TODO WRR PRIO
-	p->wrr_prio = wrr_prio(p);
 	/* we are holding p->pi_lock already */
 	p->prio = rt_mutex_getprio(p);
-	if (rt_prio(p->prio)) {
+	if (rt_prio(p->prio) && p->policy != SCHED_WRR) { //JaeD
 		p->sched_class = &rt_sched_class;
 #ifdef CONFIG_SCHED_HMP
 		if (cpumask_equal(&p->cpus_allowed, cpu_all_mask))
 			do_set_cpus_allowed(p, &hmp_slow_cpu_mask);
 #endif
 	}
-	else if(wrr_prio(p->prio)) {//Jae_D
+	else if(p->policy == SCHED_WRR) {//Jae_D
 		p->sched_class = &wrr_sched_class;
 #ifdef CONFIG_SCHED_HMP
 		if (cpumask_equal(&p->cpus_allowed, cpu_all_mask))
@@ -3904,7 +3898,6 @@ static bool check_same_owner(struct task_struct *p)
 	return match;
 }
 
-// TODO LOTS AND LOTS OF CODES TO CHANGE to support WRR
 static int __sched_setscheduler(struct task_struct *p, int policy,
 				const struct sched_param *param, bool user)
 {
@@ -3942,7 +3935,6 @@ recheck:
 			return -EINVAL;
 	if (rt_policy(policy) != (param->sched_priority != 0)) 
 		return -EINVAL;
-	 //SOLVED  vlid priority for SCHED_WRR is also 0
 
 	/*
 	 * Allow unprivileged RT tasks to decrease priority:
@@ -3960,7 +3952,7 @@ recheck:
 			if (param->sched_priority > p->rt_priority &&
 			    param->sched_priority > rlim_rtprio)
 				return -EPERM;
-		} //SOLVED we do not need to add else if (policy == SCHED_WRR) 
+		} 
 
 		/*
 		 * Treat SCHED_IDLE as nice 20(can_nice). Only allow a switch to
@@ -4034,7 +4026,7 @@ recheck:
 		goto recheck;
 	}
 	on_rq = p->on_rq;
-	running = task_current(rq, p); //c JaeD rq->curr == p
+	running = task_current(rq, p);
 	if (on_rq)
 		dequeue_task(rq, p, 0);
 	if (running)
@@ -4617,10 +4609,7 @@ SYSCALL_DEFINE1(sched_get_priority_max, int, policy)
 	case SCHED_RR:
 		ret = MAX_USER_RT_PRIO-1;
 		break;
-	/* UNCOMMENT BELOW WHEN WRR priority range IMPLEMENTED */
-	/* case SCHED_WRR:
-		ret = MAX_USER_WRR_PRIO-1;
-		break; */
+	case SCHED_WRR: //JaeD
 	case SCHED_NORMAL:
 	case SCHED_BATCH:
 	case SCHED_IDLE:
@@ -4646,10 +4635,7 @@ SYSCALL_DEFINE1(sched_get_priority_min, int, policy)
 	case SCHED_RR:
 		ret = 1;
 		break;
-	/* UNCOMMENT BELOW WHEN WRR priority range IMPLEMENTED */
-	/*case SHCED_WRR:
-		ret = MIN_USER_WRR_PRIO;
-		break;*/
+	case SCHED_WRR:
 	case SCHED_NORMAL:
 	case SCHED_BATCH:
 	case SCHED_IDLE:
@@ -7042,7 +7028,7 @@ void __init sched_init(void)
 
 	for_each_possible_cpu(i) {
 		struct rq *rq;
-
+//TODO var initializing
 		rq = cpu_rq(i);
 		raw_spin_lock_init(&rq->lock);
 		rq->nr_running = 0;
@@ -7050,6 +7036,9 @@ void __init sched_init(void)
 		rq->calc_load_update = jiffies + LOAD_FREQ;
 		init_cfs_rq(&rq->cfs);
 		init_rt_rq(&rq->rt, rq);
+		init_wrr_rq(&rq->wrr);  //JaeD
+
+
 #ifdef CONFIG_FAIR_GROUP_SCHED
 		root_task_group.shares = ROOT_TASK_GROUP_LOAD;
 		INIT_LIST_HEAD(&rq->leaf_cfs_rq_list);
@@ -7152,8 +7141,8 @@ void __init sched_init(void)
 		zalloc_cpumask_var(&cpu_isolated_map, GFP_NOWAIT);
 	idle_thread_set_boot_cpu();
 #endif
-	init_sched_wrr_class(); //Jae_D
-	//	init_sched_fair_class();
+//	init_sched_wrr_class(); //Jae_D TODO 
+	init_sched_fair_class();
 
 	scheduler_running = 1;
 }
