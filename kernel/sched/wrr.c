@@ -6,39 +6,6 @@
 #define WRR_TIMESLICE 10
 
 
-const struct sched_class wrr_sched_class = {
-	.next			= &fair_sched_class,	//does not need implement
-	.enqueue_task		= enqueue_task_wrr,	//ok
-	.dequeue_task		= dequeue_task_wrr,	//ok
-	.yield_task		= yield_task_wrr,	//ok
-
-	.check_preempt_curr	= check_preempt_curr_wrr,	//ok
-
-	.pick_next_task		= pick_next_task_wrr,	//ok
-	.put_prev_task		= put_prev_task_wrr,	//ok
-
-#ifdef CONFIG_SMP
-	.select_task_rq		= select_task_rq_wrr,	//ok ->need further implementation with weight
-
-	//.set_cpus_allowed       = set_cpus_allowed_wrr,
-	//.rq_online              = rq_online_wrr,
-	//.rq_offline             = rq_offline_wrr,
-	//.pre_schedule		= pre_schedule_wrr,
-	//.post_schedule		= post_schedule_wrr,
-	//.task_woken		= task_woken_wrr,
-	//.switched_from		= switched_from_wrr,
-#endif
-
-	.set_curr_task          = set_curr_task_wrr,	//ok ->need further implementation with weight
-	.task_tick		= task_tick_wrr, //ok ->need further implementation with weight
-
-
-	.get_rr_interval	= get_rr_interval_wrr,
-
-	//.prio_changed		= prio_changed_wrr,
-	.switched_to		= switched_to_wrr,
-};
-
 static void update_curr_rt(struct rq *rq)
 {
 	struct task_struct *curr = rq->curr;
@@ -86,7 +53,7 @@ static void update_curr_rt(struct rq *rq)
 static void enqueue_task_wrr(struct rq *rq, struct task_struct *p, int flag) {
 	struct sched_wrr_entity *wrr_se = &p->wrr; //&(p->wrr)
 
-	if(flags & ENQUEUE_WAKEUP) 
+	if(flag & ENQUEUE_WAKEUP) 
 		wrr_se->timeout = 0;
 
 	list_add_tail(&wrr_se->run_list, &rq->wrr.queue);
@@ -112,7 +79,7 @@ static void yield_task_wrr(struct rq *rq) {
 	list_move_tail(&wrr_se->run_list, &rq->wrr.queue);
 }
 
-static void check_preempt_curr_wrr(struct rq *rq, struct task_struct *p, int flags){}
+static void check_preempt_curr_wrr(struct rq *rq, struct task_struct *p, int flag){}
 
 void init_wrr_rq(struct wrr_rq *wrr_rq) {
 	INIT_LIST_HEAD(&wrr_rq->queue);
@@ -143,7 +110,7 @@ static void put_prev_task_wrr(struct rq *rq, struct task_struct *prev) {
 }
 
 #ifdef CONFIG_SMP
-	static int select_task_rq_wrr(struct task_struct *p, int sd_flag, int flags) {
+	static int select_task_rq_wrr(struct task_struct *p, int sd_flag, int flag) {
 		return 0;
 	}
 
@@ -177,3 +144,35 @@ static void switched_to_wrr(struct rq *rq, struct task_struct *p) {
 
 	wrr_entity -> weight = 10;
 }
+const struct sched_class wrr_sched_class = {
+	.next			= &fair_sched_class,	//does not need implement
+	.enqueue_task		= enqueue_task_wrr,	//ok
+	.dequeue_task		= dequeue_task_wrr,	//ok
+	.yield_task		= yield_task_wrr,	//ok
+
+	.check_preempt_curr	= check_preempt_curr_wrr,	//ok
+
+	.pick_next_task		= pick_next_task_wrr,	//ok
+	.put_prev_task		= put_prev_task_wrr,	//ok
+
+#ifdef CONFIG_SMP
+	.select_task_rq		= select_task_rq_wrr,	//ok ->need further implementation with weight
+
+	//.set_cpus_allowed       = set_cpus_allowed_wrr,
+	//.rq_online              = rq_online_wrr,
+	//.rq_offline             = rq_offline_wrr,
+	//.pre_schedule		= pre_schedule_wrr,
+	//.post_schedule		= post_schedule_wrr,
+	//.task_woken		= task_woken_wrr,
+	//.switched_from		= switched_from_wrr,
+#endif
+
+	.set_curr_task          = set_curr_task_wrr,	//ok ->need further implementation with weight
+	.task_tick		= task_tick_wrr, //ok ->need further implementation with weight
+
+
+	.get_rr_interval	= get_rr_interval_wrr,
+
+	//.prio_changed		= prio_changed_wrr,
+	.switched_to		= switched_to_wrr,
+};
