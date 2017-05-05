@@ -786,7 +786,7 @@ void activate_task(struct rq *rq, struct task_struct *p, int flags)
 		rq->nr_uninterruptible--;
 
 	enqueue_task(rq, p, flags);
-	if (p->pid > 5000 && p->policy == 6) printk(KERN_DEBUG "activate_task\n");
+	//if (p->pid > 5000 && p->policy == 6) printk(KERN_DEBUG "activate_task\n");
 }
 
 void deactivate_task(struct rq *rq, struct task_struct *p, int flags)

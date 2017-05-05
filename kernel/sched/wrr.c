@@ -51,21 +51,27 @@ static void update_curr_wrr(struct rq *rq)
 	*/
 }
 
+static inline int on_wrr_rq(struct sched_wrr_entity *wrr_se) {
+	if(list_empty(&wrr_se->run_list)) return 0;
+	else return 1; 
+}
 
 static void enqueue_task_wrr(struct rq *rq, struct task_struct *p, int flag) {
 	struct sched_wrr_entity *wrr_se = &p->wrr; //&(p->wrr)
 
+	if(on_wrr_rq(wrr_se)) return;
+
 	if(current->pid>5000) printk(KERN_DEBUG "enqueue_task_wrr\n");
-	//if(flag & ENQUEUE_WAKEUP) 
-	//	wrr_se->timeout = 0;
+	if(flag & ENQUEUE_WAKEUP) 
+		wrr_se->timeout = 0;
 
 	if(current->pid>5000) printk(KERN_DEBUG "Diablo\n");
-	//list_add_tail(&wrr_se->run_list, &rq->wrr.queue);
+	list_add_tail(&wrr_se->run_list, &rq->wrr.queue);
 	if(current->pid>5000) printk(KERN_DEBUG "Is\n");
-	//++rq -> wrr.wrr_nr_running;
+	++rq -> wrr.wrr_nr_running;
 	if(current->pid>5000) printk(KERN_DEBUG "God\n");
 
-	//inc_nr_running(rq);
+	inc_nr_running(rq);
 	if(current->pid>5000) printk(KERN_DEBUG "Game\n");
 }
 
@@ -109,7 +115,7 @@ static struct task_struct *pick_next_task_wrr(struct rq *rq) {
 	struct task_struct *p = NULL;
 	struct wrr_rq *wrr_rq = &rq->wrr; //is there a built-in wrr_rq or do we have to do this everytime?
 																		//I think I am curently confusing this and totally fixed it. 
-	if(current->pid>5000) printk(KERN_DEBUG "pick_next_task_wrr\n");
+	//if(current->pid>5000) printk(KERN_DEBUG "pick_next_task_wrr\n");
 	
 	if((!wrr_rq->wrr_nr_running)||(list_empty(&wrr_rq->queue)))	return NULL;
 	
