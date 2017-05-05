@@ -349,11 +349,11 @@ task_rq_unlock(struct rq *rq, struct task_struct *p, unsigned long *flags)
 	__releases(rq->lock)
 	__releases(p->pi_lock)
 {
-	if (p->sched_class==&wrr_sched_class) printk(KERN_DEBUG "task_rq_unlock %p %p %p\n", rq, p, flags);
+//	if (p->sched_class==&wrr_sched_class) printk(KERN_DEBUG "task_rq_unlock %p %p %p\n", rq, p, flags);
 	raw_spin_unlock(&rq->lock);
-	if (p->sched_class==&wrr_sched_class) printk(KERN_DEBUG "task_rq_unlock %p %p %p\n", rq, p, flags);
+//	if (p->sched_class==&wrr_sched_class) printk(KERN_DEBUG "task_rq_unlock %p %p %p\n", rq, p, flags);
 	raw_spin_unlock_irqrestore(&p->pi_lock, *flags);
-	if (p->sched_class==&wrr_sched_class) printk(KERN_DEBUG "task_rq_unlock %p %p %p\n", rq, p, flags);
+//	if (p->sched_class==&wrr_sched_class) printk(KERN_DEBUG "task_rq_unlock %p %p %p\n", rq, p, flags);
 }
 
 /*
@@ -1323,7 +1323,7 @@ ttwu_stat(struct task_struct *p, int cpu, int wake_flags)
 static void ttwu_activate(struct rq *rq, struct task_struct *p, int en_flags)
 {
 	activate_task(rq, p, en_flags);
-	if (p->pid > 5000 && p->policy == 6) printk(KERN_DEBUG "1323\n");
+//	if (p->pid > 5000 && p->policy == 6) printk(KERN_DEBUG "1323\n");
 	p->on_rq = 1;
 
 	/* if a worker is waking up, notify workqueue */
@@ -1790,20 +1790,20 @@ void wake_up_new_task(struct task_struct *p)
 
 	rq = __task_rq_lock(p);
 	activate_task(rq, p, 0);
-	if (p->pid > 5000 && p->policy == 6) printk(KERN_DEBUG "1789\n");
+//	if (p->pid > 5000 && p->policy == 6) printk(KERN_DEBUG "1789\n");
 	p->on_rq = 1;
-	if (p->pid > 5000 && p->policy == 6) printk(KERN_DEBUG "1789\n");
+//	if (p->pid > 5000 && p->policy == 6) printk(KERN_DEBUG "1789\n");
 	trace_sched_wakeup_new(p, true);
-	if (p->pid > 5000 && p->policy == 6) printk(KERN_DEBUG "1789\n");
+//	if (p->pid > 5000 && p->policy == 6) printk(KERN_DEBUG "1789\n");
 	check_preempt_curr(rq, p, WF_FORK);
-	if (p->pid > 5000 && p->policy == 6) printk(KERN_DEBUG "1789\n");
+//	if (p->pid > 5000 && p->policy == 6) printk(KERN_DEBUG "1789\n");
 #ifdef CONFIG_SMP
 	if (p->sched_class->task_woken)
 		p->sched_class->task_woken(rq, p);
 #endif
-	if (p->pid > 5000 && p->policy == 6) printk(KERN_DEBUG "1800\n");
+//	if (p->pid > 5000 && p->policy == 6) printk(KERN_DEBUG "1800\n");
 	task_rq_unlock(rq, p, &flags);
-	if (p->pid > 5000 && p->policy == 6) printk(KERN_DEBUG "1800\n");
+//	if (p->pid > 5000 && p->policy == 6) printk(KERN_DEBUG "1800\n");
 }
 
 #ifdef CONFIG_PREEMPT_NOTIFIERS
@@ -4689,6 +4689,7 @@ SYSCALL_DEFINE2(sched_rr_get_interval, pid_t, pid,
 	retval = -ESRCH;
 	rcu_read_lock();
 	p = find_process_by_pid(pid);
+	printk(KERN_DEBUG "%d %d %d %d\n", p, p->pid , p->policy, p->sched_class);
 	if (!p)
 		goto out_unlock;
 
@@ -7447,7 +7448,7 @@ void sched_move_task(struct task_struct *tsk)
 		tsk->sched_class->set_curr_task(rq);
 	if (on_rq)
 		enqueue_task(rq, tsk, 0);
-	if (tsk->pid > 5000 && tsk->policy == 6) printk(KERN_DEBUG "7439\n");
+//	if (tsk->pid > 5000 && tsk->policy == 6) printk(KERN_DEBUG "7439\n");
 
 	task_rq_unlock(rq, tsk, &flags);
 }

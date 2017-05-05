@@ -32,7 +32,7 @@ static void update_curr_wrr(struct rq *rq)
 	//struct rt_rq *rt_rq = rt_rq_of_se(rt_se);
 	u64 delta_exec;
 
-	if(current->pid>5000) printk(KERN_DEBUG "update_curr_wrr\n");
+//	if(current->pid>5000) printk(KERN_DEBUG "update_curr_wrr\n");
 
 	if (curr->sched_class != &wrr_sched_class)
 		return;
@@ -80,24 +80,24 @@ static void enqueue_task_wrr(struct rq *rq, struct task_struct *p, int flag) {
 
 	//if(on_wrr_rq(wrr_se)) return;
 
-	if(current->pid>5000) printk(KERN_DEBUG "enqueue_task_wrr\n");
+//	if(current->pid>5000) printk(KERN_DEBUG "enqueue_task_wrr\n");
 	if(flag & ENQUEUE_WAKEUP) 
 		wrr_se->timeout = 0;
 
-	if(current->pid>5000) printk(KERN_DEBUG "Diablo\n");
+//	if(current->pid>5000) printk(KERN_DEBUG "Diablo\n");
 	list_add_tail(&wrr_se->run_list, &rq->wrr.queue);
-	if(current->pid>5000) printk(KERN_DEBUG "Is\n");
+//	if(current->pid>5000) printk(KERN_DEBUG "Is\n");
 	++rq -> wrr.wrr_nr_running;
-	if(current->pid>5000) printk(KERN_DEBUG "God\n");
+//	if(current->pid>5000) printk(KERN_DEBUG "God\n");
 
 	inc_nr_running(rq);
-	if(current->pid>5000) printk(KERN_DEBUG "Game\n");
+//	if(current->pid>5000) printk(KERN_DEBUG "Game\n");
 }
 
 static void dequeue_task_wrr(struct rq *rq, struct task_struct *p, int flag) {
 	struct sched_wrr_entity *wrr_se = &p->wrr;
 	
-	if(current->pid>5000) printk(KERN_DEBUG "dequeue_task_wrr\n");
+//	if(current->pid>5000) printk(KERN_DEBUG "dequeue_task_wrr\n");
 	update_curr_wrr(rq);	//I think I have to implement this thing
 	list_del(&wrr_se->run_list);
 	--rq -> wrr.wrr_nr_running;
@@ -109,7 +109,7 @@ static void requeue_task_wrr(struct rq *rq, struct task_struct *p) {
 	struct wrr_rq *wrr_rq = &rq->wrr;
 	struct sched_wrr_entity *wrr_se = &p->wrr;
 
-	if(current->pid>5000) printk(KERN_DEBUG "requeue_task_wrr\n");
+//	if(current->pid>5000) printk(KERN_DEBUG "requeue_task_wrr\n");
 	list_move_tail(&wrr_se->run_list, &wrr_rq->queue);
 }
 
@@ -117,7 +117,7 @@ static void yield_task_wrr(struct rq *rq) {
 	struct sched_wrr_entity *wrr_se = &rq->curr->wrr;
 	struct wrr_rq *wrr_rq;
 
-	if(current->pid>5000) printk(KERN_DEBUG "yield_task_wrr\n");
+//	if(current->pid>5000) printk(KERN_DEBUG "yield_task_wrr\n");
 	list_move_tail(&wrr_se->run_list, &rq->wrr.queue);
 }
 
@@ -151,7 +151,7 @@ static struct task_struct *pick_next_task_wrr(struct rq *rq) {
 
 static void put_prev_task_wrr(struct rq *rq, struct task_struct *prev) {
 	update_curr_wrr(rq);
-	if(current->pid>5000) printk(KERN_DEBUG "put_prev_task_wrr\n");
+//	if(current->pid>5000) printk(KERN_DEBUG "put_prev_task_wrr\n");
 }
 
 #ifdef CONFIG_SMP
@@ -163,12 +163,12 @@ static void put_prev_task_wrr(struct rq *rq, struct task_struct *prev) {
 
 static void set_curr_task_wrr(struct rq *rq) {
 	struct task_struct *p = rq->curr;
-	if(current->pid>5000) printk(KERN_DEBUG "set_curr_task_wrr\n");
+//	if(current->pid>5000) printk(KERN_DEBUG "set_curr_task_wrr\n");
 	p->se.exec_start = rq->clock_task;
 }
 
 static void task_tick_wrr(struct rq *rq, struct task_struct *p, int queued){
-	if(current->pid>5000) printk(KERN_DEBUG "task_tick_wrr\n");
+//	if(current->pid>5000) printk(KERN_DEBUG "task_tick_wrr\n");
 	update_curr_wrr(rq);
 
 	if(--p->wrr.time_slice > 0) return;
@@ -205,11 +205,14 @@ static void switched_from_wrr(struct rq*rq, struct task_struct *p)
 
 static void
 prio_changed_wrr(struct rq *rq, struct task_struct *p, int oldprio) {
-	if(current->pid>5000) printk(KERN_DEBUG "prio_changed_wrr\n");
+//	if(current->pid>5000) printk(KERN_DEBUG "prio_changed_wrr\n");
 }
 
 static unsigned int get_rr_interval_wrr(struct rq *rq, struct task_struct *task) {
-	struct sched_wrr_entity *wrr_se =  &task->wrr;
+	if(task->pid > 4500) {
+		printk(KERN_DEBUG "get_rr_interval_wrr\n");
+		struct sched_wrr_entity *wrr_se =  &task->wrr;
+		}
 	unsigned int rr_interval = 100;
 //	if(rq->wrr.load.weight) 
 //		rr_interval = (wrr_se->weight*10) * HZ/1000 ;// mesc to Jiffies <= HZ
