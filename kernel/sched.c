@@ -36,9 +36,9 @@ int sys_sched_setweight(pid_t pid, int weight) {
 		return -EPERM;
 	}
 
-	//write_lock(p->wrr->weight_lock);
+	write_lock(&p->wrr.weight_lock);
 	p->wrr.weight = weight;
-	//write_unlock(p->wrr->weight_lock);
+	write_unlock(&p->wrr.weight_lock);
 	return 0;
 }
 /*
@@ -61,8 +61,8 @@ int sys_sched_getweight(pid_t pid){
 		}
 	}
 
-	//read_lock(p->wrr->weight_lock);
+	read_lock(&p->wrr.weight_lock);
 	weight = p->wrr.weight;
-	//read_unlock(p->wrr->weight_lock);
+	read_unlock(&p->wrr.weight_lock);
 	return weight;
 }
