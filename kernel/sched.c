@@ -36,8 +36,9 @@ int sys_sched_setweight(pid_t pid, int weight) {
 		return -EPERM;
 	}
 
-	// FIXME lock may be required.
+	//write_lock(p->wrr->weight_lock);
 	p->wrr.weight = weight;
+	//write_unlock(p->wrr->weight_lock);
 	return 0;
 }
 /*
@@ -47,6 +48,7 @@ int sys_sched_setweight(pid_t pid, int weight) {
  *     */
 int sys_sched_getweight(pid_t pid){
 	struct task_struct *p;
+	int weight;
 
  	printk(KERN_DEBUG "GET");
 
@@ -59,5 +61,8 @@ int sys_sched_getweight(pid_t pid){
 		}
 	}
 
-	return p->wrr.weight;
+	//read_lock(p->wrr->weight_lock);
+	weight = p->wrr.weight;
+	//read_unlock(p->wrr->weight_lock);
+	return weight;
 }

@@ -3,8 +3,17 @@
 #include <linux/slab.h>
 #include <linux/irq_work.h>
 
-#define WRR_TIMESLICE 10
+#define WRR_DEFAULT_WEIGHT 10
 
+/*
+ * initialize sched_wrr class and it's entity(sched_wrr_entity)
+ */
+void init_sched_wrr_class() {
+	struct sched_wrr_entity *wrr_entity;
+	wrr_entity = &current->wrr;
+	wrr_entity->weight = WRR_DEFAULT_WEIGHT;
+	rwlock_init(&wrr_entity->weight_lock);
+}
 
 static void update_curr_wrr(struct rq *rq)
 {
