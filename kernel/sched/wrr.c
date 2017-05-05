@@ -119,11 +119,11 @@ static struct task_struct *pick_next_task_wrr(struct rq *rq) {
 	
 	if((!wrr_rq->wrr_nr_running)||(list_empty(&wrr_rq->queue)))	return NULL;
 	
-	list_entry(wrr_rq->queue.next, struct sched_wrr_entity, run_list);
+	wrr_se = list_entry(wrr_rq->queue.next, struct sched_wrr_entity, run_list);
 	p = container_of(wrr_se, struct task_struct, wrr);
 	if(p==NULL) return NULL; 
 
-	//p->se.exec_start = rq->clock_task;
+	p->se.exec_start = rq->clock_task;
 	//the above is said to be done in update_curr So, if it does not work, erase // 
 	//Or go and fix update_curr(_wrr)
 	
