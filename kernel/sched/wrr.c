@@ -190,7 +190,11 @@ prio_changed_wrr(struct rq *rq, struct task_struct *p, int oldprio) {
 }
 
 static unsigned int get_rr_interval_wrr(struct rq *rq, struct task_struct *task) {
-	return 100;
+	struct sched_wrr_entity *wrr_se =  &task->wrr;
+	unsigned int rr_interval = 100;
+//	if(rq->wrr.load.weight) 
+//		rr_interval = (wrr_se->weight*10) * HZ/1000 ;// mesc to Jiffies <= HZ
+	return rr_interval;
 }
 
 static void switched_to_wrr(struct rq *rq, struct task_struct *p) {
