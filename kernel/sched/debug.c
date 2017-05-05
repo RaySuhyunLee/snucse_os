@@ -119,12 +119,18 @@ static char *task_group_path(struct task_group *tg)
 static void
 print_task(struct seq_file *m, struct rq *rq, struct task_struct *p)
 {
+
+	int print_class = 0;
+	if(p->sched_class == &rt_sched_class) print_class = 1;
+	if(p->sched_class == &fair_sched_class) print_class = 0;
+	if(p->sched_class == &wrr_sched_class) print_class = 6;
 	if (rq->curr == p)
 		SEQ_printf(m, "R");
 	else
 		SEQ_printf(m, " ");
+	
 
-	SEQ_printf(m, "%d %d %15s %5d %9Ld.%06ld %9Ld %5d ",p->sched_class, p->policy,
+	SEQ_printf(m, "%d %d %15s %5d %9Ld.%06ld %9Ld %5d ",print_class, p->policy,
 		p->comm, p->pid,
 		SPLIT_NS(p->se.vruntime),
 		(long long)(p->nvcsw + p->nivcsw),
