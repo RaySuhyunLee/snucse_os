@@ -1726,7 +1726,7 @@ void sched_fork(struct task_struct *p)
 		 */
 		p->sched_reset_on_fork = 0;
 	}
-	if(p->pid > 5000 && p->policy == SCHED_WRR) //JaeD
+	if(p->policy == SCHED_WRR) //JaeD
 		p->sched_class = &wrr_sched_class;
 	else if (!rt_prio(p->prio))
 		p->sched_class = &fair_sched_class;

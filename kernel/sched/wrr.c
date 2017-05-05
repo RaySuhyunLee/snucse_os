@@ -59,7 +59,7 @@ static inline int on_wrr_rq(struct sched_wrr_entity *wrr_se) {
 static void enqueue_task_wrr(struct rq *rq, struct task_struct *p, int flag) {
 	struct sched_wrr_entity *wrr_se = &p->wrr; //&(p->wrr)
 
-	if(on_wrr_rq(wrr_se)) return;
+	//if(on_wrr_rq(wrr_se)) return;
 
 	if(current->pid>5000) printk(KERN_DEBUG "enqueue_task_wrr\n");
 	if(flag & ENQUEUE_WAKEUP) 
