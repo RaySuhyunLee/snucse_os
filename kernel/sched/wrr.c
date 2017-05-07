@@ -170,10 +170,12 @@ static void set_curr_task_wrr(struct rq *rq) {
 static void task_tick_wrr(struct rq *rq, struct task_struct *p, int queued){
 	if(current->pid>5000) printk(KERN_DEBUG "task_tick_wrr\n");
 	update_curr_wrr(rq);
+	
+	if(p->policy != SCHED_WRR) return;
 
 	if(--p->wrr.time_slice > 0) return;
 
-	p-> wrr.time_slice = 10;
+	p->wrr.time_slice = p->wrr.weight;
 
 	if(p->wrr.run_list.prev != p->wrr.run_list.next) {
 		requeue_task_wrr(rq,p);
@@ -209,7 +211,8 @@ prio_changed_wrr(struct rq *rq, struct task_struct *p, int oldprio) {
 }
 
 static unsigned int get_rr_interval_wrr(struct rq *rq, struct task_struct *task) {
-	return 100;
+	if(current->pid>4100) printk(KERN_DEBUG "get_rr_interval %d %d \n",10*task->wrr.weight, msecs_to_jiffies(10*task->wrr.weight));
+	return msecs_to_jiffies(10*task->wrr.weight);
 }
 
 static void switched_to_wrr(struct rq *rq, struct task_struct *p) {
