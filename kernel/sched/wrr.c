@@ -25,6 +25,8 @@ void init_sched_wrr_class() {
 	wrr_set_weight(wrr_entity, 10);
 }
 
+//int cpu_i = 0;
+DEFINE_SPINLOCK(cpu_lock);
 
 static void update_curr_wrr(struct rq *rq)
 {
@@ -155,7 +157,13 @@ static void put_prev_task_wrr(struct rq *rq, struct task_struct *prev) {
 
 #ifdef CONFIG_SMP
 	static int select_task_rq_wrr(struct task_struct *p, int sd_flag, int flag) {
-		return 0;
+		
+		static int cpu_i = 0;
+		spin_lock(&cpu_lock);	
+		int cpu_num =  (++cpu_i)%NR_CPUS;
+		if(current->pid>4100) printk(KERN_DEBUG "cpu num: %d \n", cpu_num);
+		spin_unlock(&cpu_lock);
+		return cpu_num;
 	}
 
 #endif
