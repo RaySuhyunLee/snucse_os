@@ -1060,6 +1060,7 @@ struct sched_wrr_entity {	//added by SJ
 	//unsigned long watchdog_stamp;
 	unsigned int time_slice;
 	unsigned int weight; 
+	rwlock_t weight_lock;
 	struct task_struct *task;
 
 	struct sched_wrr_entity *back;

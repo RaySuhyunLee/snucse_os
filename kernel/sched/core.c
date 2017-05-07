@@ -7164,8 +7164,8 @@ void __init sched_init(void)
 		zalloc_cpumask_var(&cpu_isolated_map, GFP_NOWAIT);
 	idle_thread_set_boot_cpu();
 #endif
-//	init_sched_wrr_class(); //Jae_D TODO 
 	init_sched_fair_class();
+	init_sched_wrr_class(); // initialize wrr class and it's entity
 
 	scheduler_running = 1;
 }

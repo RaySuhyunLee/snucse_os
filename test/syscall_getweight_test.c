@@ -14,10 +14,8 @@ int main (int argc, char* argv[]) {
 
 	printf("testing with pid: %d\n", pid);
 
-	int a = syscall(380,pid,1);
 	int b = syscall(381,pid);
 
-	printf("sys_sched_setweight returned with %d\n", a);
 	printf("sys_sched_getweight returned with %d\n", b);
 	return 0;
 }
