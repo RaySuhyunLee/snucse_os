@@ -5,6 +5,8 @@
 #include "sched.h"
 #include "wrr.h"
 
+//int cpu_i = 0;
+DEFINE_SPINLOCK(cpu_lock);
 
 int wrr_set_weight(struct sched_wrr_entity * entity, int weight) {
 	if (weight > WRR_MAX_WEIGHT || weight < WRR_MIN_WEIGHT)
@@ -24,9 +26,6 @@ void init_sched_wrr_class() {
 	rwlock_init(&wrr_entity->weight_lock);
 	wrr_set_weight(wrr_entity, 10);
 }
-
-//int cpu_i = 0;
-DEFINE_SPINLOCK(cpu_lock);
 
 static void update_curr_wrr(struct rq *rq)
 {
