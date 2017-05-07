@@ -168,18 +168,23 @@ static void set_curr_task_wrr(struct rq *rq) {
 }
 
 static void task_tick_wrr(struct rq *rq, struct task_struct *p, int queued){
-	if(current->pid>5000) printk(KERN_DEBUG "task_tick_wrr\n");
+
+ 	struct sched_wrr_entity *wrr_se = &p->wrr;
+
 	update_curr_wrr(rq);
 	
 	if(p->policy != SCHED_WRR) return;
 
-	if(--p->wrr.time_slice > 0) return;
+	if(--p->wrr.time_slice) return;
 
-	p->wrr.time_slice = p->wrr.weight;
-
-	if(p->wrr.run_list.prev != p->wrr.run_list.next) {
-		requeue_task_wrr(rq,p);
-		set_tsk_need_resched(p);
+	p->wrr.time_slice = p->wrr.weight * 10;
+	
+	for_each_sched_wrr_entity(wrr_se) {
+		if(p->wrr.run_list.prev != p->wrr.run_list.next) {
+			requeue_task_wrr(rq,p);
+			set_tsk_need_resched(p);
+			return;
+		}
 	}
 }
 
