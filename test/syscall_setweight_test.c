@@ -8,16 +8,19 @@
 
 int main (int argc, char* argv[]) {
 	int pid = 0;
+	int weight = 10;
+
 	if (argc == 2) {
 		pid = atoi(argv[1]);
+	} else if (argc == 3) {
+		pid = atoi(argv[1]);
+		weight = atoi(argv[2]);
 	}
 
 	printf("testing with pid: %d\n", pid);
 
-	int a = syscall(380,pid,1);
-	int b = syscall(381,pid);
+	int a = syscall(380,pid,weight);
 
 	printf("sys_sched_setweight returned with %d\n", a);
-	printf("sys_sched_getweight returned with %d\n", b);
 	return 0;
 }

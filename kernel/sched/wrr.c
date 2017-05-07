@@ -1,10 +1,29 @@
-#include "sched.h"
-
+#include <uapi/asm-generic/errno-base.h>
 #include <linux/slab.h>
 #include <linux/irq_work.h>
 
-#define WRR_TIMESLICE 10
+#include "sched.h"
+#include "wrr.h"
 
+
+int wrr_set_weight(struct sched_wrr_entity * entity, int weight) {
+	if (weight > WRR_MAX_WEIGHT || weight < WRR_MIN_WEIGHT)
+		return -EINVAL;
+	write_lock(&entity->weight_lock);
+	entity->weight = weight;
+	write_unlock(&entity->weight_lock);
+	return 0;
+}
+
+/*
+ * initialize sched_wrr class and it's entity(sched_wrr_entity)
+ */
+void init_sched_wrr_class() {
+	struct sched_wrr_entity *wrr_entity;
+	wrr_entity = &current->wrr;
+	rwlock_init(&wrr_entity->weight_lock);
+	wrr_set_weight(wrr_entity, 10);
+}
 
 static void update_curr_wrr(struct rq *rq)
 {
