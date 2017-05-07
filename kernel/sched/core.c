@@ -349,11 +349,8 @@ task_rq_unlock(struct rq *rq, struct task_struct *p, unsigned long *flags)
 	__releases(rq->lock)
 	__releases(p->pi_lock)
 {
-//	if (p->sched_class==&wrr_sched_class) printk(KERN_DEBUG "task_rq_unlock %p %p %p\n", rq, p, flags);
 	raw_spin_unlock(&rq->lock);
-//	if (p->sched_class==&wrr_sched_class) printk(KERN_DEBUG "task_rq_unlock %p %p %p\n", rq, p, flags);
 	raw_spin_unlock_irqrestore(&p->pi_lock, *flags);
-//	if (p->sched_class==&wrr_sched_class) printk(KERN_DEBUG "task_rq_unlock %p %p %p\n", rq, p, flags);
 }
 
 /*
@@ -786,7 +783,6 @@ void activate_task(struct rq *rq, struct task_struct *p, int flags)
 		rq->nr_uninterruptible--;
 
 	enqueue_task(rq, p, flags);
-	//if (p->pid > 5000 && p->policy == 6) printk(KERN_DEBUG "activate_task\n");
 }
 
 void deactivate_task(struct rq *rq, struct task_struct *p, int flags)
@@ -1323,7 +1319,6 @@ ttwu_stat(struct task_struct *p, int cpu, int wake_flags)
 static void ttwu_activate(struct rq *rq, struct task_struct *p, int en_flags)
 {
 	activate_task(rq, p, en_flags);
-//	if (p->pid > 5000 && p->policy == 6) printk(KERN_DEBUG "1323\n");
 	p->on_rq = 1;
 
 	/* if a worker is waking up, notify workqueue */
@@ -1790,20 +1785,14 @@ void wake_up_new_task(struct task_struct *p)
 
 	rq = __task_rq_lock(p);
 	activate_task(rq, p, 0);
-//	if (p->pid > 5000 && p->policy == 6) printk(KERN_DEBUG "1789\n");
 	p->on_rq = 1;
-//	if (p->pid > 5000 && p->policy == 6) printk(KERN_DEBUG "1789\n");
 	trace_sched_wakeup_new(p, true);
-//	if (p->pid > 5000 && p->policy == 6) printk(KERN_DEBUG "1789\n");
 	check_preempt_curr(rq, p, WF_FORK);
-//	if (p->pid > 5000 && p->policy == 6) printk(KERN_DEBUG "1789\n");
 #ifdef CONFIG_SMP
 	if (p->sched_class->task_woken)
 		p->sched_class->task_woken(rq, p);
 #endif
-//	if (p->pid > 5000 && p->policy == 6) printk(KERN_DEBUG "1800\n");
 	task_rq_unlock(rq, p, &flags);
-//	if (p->pid > 5000 && p->policy == 6) printk(KERN_DEBUG "1800\n");
 }
 
 #ifdef CONFIG_PREEMPT_NOTIFIERS
@@ -3696,10 +3685,7 @@ void rt_mutex_setprio(struct task_struct *p, int prio)
 	if (on_rq)
 		enqueue_task(rq, p, oldprio < prio ? ENQUEUE_HEAD : 0);
 
-	if (p->pid > 5000 && p->policy == 6) printk(KERN_DEBUG "3688\n");
-
 	check_class_changed(rq, p, prev_class, oldprio);
-	if (p->pid > 5000 && p->policy == 6) printk(KERN_DEBUG "3691\n");
 out_unlock:
 	__task_rq_unlock(rq);
 }
@@ -3739,7 +3725,6 @@ void set_user_nice(struct task_struct *p, long nice)
 
 	if (on_rq) {
 		enqueue_task(rq, p, 0);
-		if (p->pid > 5000 && p->policy == 6) printk(KERN_DEBUG "3731\n");
 		/*
 		 * If the task increased its priority or is running and
 		 * lowered its priority, then reschedule its CPU:
@@ -4061,8 +4046,6 @@ recheck:
 		p->sched_class->set_curr_task(rq);
 	if (on_rq)
 		enqueue_task(rq, p, 0);
-
-	if (p->pid > 5000 && p->policy == 6) printk(KERN_DEBUG "4054\n");
 
 	check_class_changed(rq, p, prev_class, oldprio); //c JaeD : maybe it is change policy`
 	task_rq_unlock(rq, p, &flags);
@@ -4956,9 +4939,7 @@ static int __migrate_task(struct task_struct *p, int src_cpu, int dest_cpu)
 		dequeue_task(rq_src, p, 0);
 		set_task_cpu(p, dest_cpu);
 		enqueue_task(rq_dest, p, 0);
-		if (p->pid > 5000 && p->policy == 6) printk(KERN_DEBUG "4950\n");
 		check_preempt_curr(rq_dest, p, 0);
-		if (p->pid > 5000 && p->policy == 6) printk(KERN_DEBUG "4950\n");
 	}
 done:
 	ret = 1;
@@ -7231,9 +7212,7 @@ static void normalize_task(struct rq *rq, struct task_struct *p)
 	__setscheduler(rq, p, SCHED_NORMAL, 0);
 	if (on_rq) {
 		enqueue_task(rq, p, 0);
-		if (p->pid > 5000 && p->policy == 6) printk(KERN_DEBUG "7220\n");
 		resched_task(rq->curr);
-		if (p->pid > 5000 && p->policy == 6) printk(KERN_DEBUG "7220\n");
 	}
 
 	check_class_changed(rq, p, prev_class, old_prio);
@@ -7448,7 +7427,6 @@ void sched_move_task(struct task_struct *tsk)
 		tsk->sched_class->set_curr_task(rq);
 	if (on_rq)
 		enqueue_task(rq, tsk, 0);
-//	if (tsk->pid > 5000 && tsk->policy == 6) printk(KERN_DEBUG "7439\n");
 
 	task_rq_unlock(rq, tsk, &flags);
 }
