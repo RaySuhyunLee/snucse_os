@@ -4686,6 +4686,7 @@ SYSCALL_DEFINE2(sched_rr_get_interval, pid_t, pid,
 
 	rcu_read_unlock();
 	jiffies_to_timespec(time_slice, &t);
+	printk(KERN_DEBUG "%d %d", time_slice, &t);
 	retval = copy_to_user(interval, &t, sizeof(t)) ? -EFAULT : 0;
 	return retval;
 
