@@ -25,7 +25,6 @@ void init_sched_wrr_class() {
 	wrr_set_weight(wrr_entity, 10);
 }
 
-static inline u64
 
 static void update_curr_wrr(struct rq *rq)
 {
