@@ -333,7 +333,7 @@ struct wrr_rq {
 	u64 min_vruntime_copy;
 #endif
 	/*
-	 * 'curr' points to currently running entity on this cfs_rq.
+	 * 'curr' points to currently running entity on this wrr_rq.
 	 * It is set to NULL otherwise (i.e when none are currently running).
 	 */
 	struct sched_entity *curr, *next, *last, *skip;

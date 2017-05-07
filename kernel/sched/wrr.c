@@ -257,7 +257,7 @@ const struct sched_class wrr_sched_class = {
 };
 
 
-void wrr_load_balance();
+static void wrr_load_balance(void);
 
 /*
  * called periodically by core.c
@@ -265,13 +265,26 @@ void wrr_load_balance();
 void wrr_trigger_load_balance(struct rq *rq, int cpu) {
 	if (time_after_eq(jiffies, next_balance)) {
 		next_balance = jiffies + 2*HZ;
-		printk(KERN_ERR "CPU: %d\n", cpu);//load_balance();
+		wrr_load_balance();
 	}
 }
 
-void wrr_load_balance() {
-	int this_cpu = smp_processor_id();
-	struct rq *this_rq = cpu_rq(this_cpu);
-	enum cpu_idle_type idle = this_rq->idle_balance ?
-						CPU_IDLE : CPU_NOT_IDLE;
+static void wrr_load_balance(void) {
+	struct rq *rq;
+	struct wrr_rq *wrr_rq;
+	enum cpu_idle_type idle;
+	int i;
+	
+	#define get_idle(rq) (rq)->idle_balance ? CPU_IDLE : CPU_NOT_IDLE
+	
+	// calculate load of each cpu
+	for_each_possible_cpu(i) {
+		rq = cpu_rq(i);
+		wrr_rq = &rq->wrr;
+		//printk(KERN_ERR "CPU %d: %d tasks in queue\n\n", i, wrr_rq->wrr_nr_running);
+		
+		// put actual load balancing logic here
+	}
+	
+	#undef get_idle(rq)
 }
