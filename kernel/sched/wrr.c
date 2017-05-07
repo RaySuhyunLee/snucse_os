@@ -84,11 +84,8 @@ static void enqueue_task_wrr(struct rq *rq, struct task_struct *p, int flag) {
 	if(flag & ENQUEUE_WAKEUP) 
 		wrr_se->timeout = 0;
 
-//	if(current->pid>5000) printk(KERN_DEBUG "Diablo\n");
 	list_add_tail(&wrr_se->run_list, &rq->wrr.queue);
-//	if(current->pid>5000) printk(KERN_DEBUG "Is\n");
 	++rq -> wrr.wrr_nr_running;
-//	if(current->pid>5000) printk(KERN_DEBUG "God\n");
 
 	inc_nr_running(rq);
 //	if(current->pid>5000) printk(KERN_DEBUG "Game\n");
@@ -156,12 +153,14 @@ static void put_prev_task_wrr(struct rq *rq, struct task_struct *prev) {
 
 #ifdef CONFIG_SMP
 	static int select_task_rq_wrr(struct task_struct *p, int sd_flag, int flag) {
-		
+		if(p->nr_cpus_allowed ==1 || (sd_flag != SD_BALANCE_WAKE && sd_flag != SD_BALANCE_FORK)) return task_cpu(p);
+
 		static int cpu_i = 0;
+
 		spin_lock(&cpu_lock);	
 		int cpu_num =  (++cpu_i)%NR_CPUS;
-		if(current->pid>4100) printk(KERN_DEBUG "cpu num: %d \n", cpu_num);
 		spin_unlock(&cpu_lock);
+
 		return cpu_num;
 	}
 

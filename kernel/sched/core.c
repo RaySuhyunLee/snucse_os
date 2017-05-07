@@ -1522,11 +1522,11 @@ try_to_wake_up(struct task_struct *p, unsigned int state, int wake_flags)
 
 	if (p->sched_class->task_waking)
 		p->sched_class->task_waking(p);
-
 	cpu = select_task_rq(p, SD_BALANCE_WAKE, wake_flags);
 	if (task_cpu(p) != cpu) {
 		wake_flags |= WF_MIGRATED;
 		set_task_cpu(p, cpu);
+		if(p->pid >4500 && p->sched_class == &wrr_sched_class) printk(KERN_DEBUG "Wake up new task %d : %d\n",p->pid, task_cpu(p));
 	}
 #endif /* CONFIG_SMP */
 
@@ -1782,7 +1782,8 @@ void wake_up_new_task(struct task_struct *p)
 	 */
 	set_task_cpu(p, select_task_rq(p, SD_BALANCE_FORK, 0));
 #endif
-
+	
+	if(p->pid >4500 && p->sched_class == &wrr_sched_class) printk(KERN_DEBUG "Wake up new task %d : %d\n",p->pid, task_cpu(p));
 	rq = __task_rq_lock(p);
 	activate_task(rq, p, 0);
 	p->on_rq = 1;
