@@ -25,14 +25,16 @@ void init_sched_wrr_class() {
 	wrr_set_weight(wrr_entity, 10);
 }
 
+static inline u64
+
 static void update_curr_wrr(struct rq *rq)
 {
 	struct task_struct *curr = rq->curr;
-	//struct sched_rt_entity *rt_se = &curr->rt;
-	//struct rt_rq *rt_rq = rt_rq_of_se(rt_se);
+//	struct sched_wrr_entity *wrr_se = &curr->wrr;
+//	struct wrr_rq *wrr_rq = wrr_rq_of_se(wrr_se);
 	u64 delta_exec;
 
-	if(current->pid>5000) printk(KERN_DEBUG "update_curr_wrr\n");
+//	if(current->pid>5000) printk(KERN_DEBUG "update_curr_wrr\n");
 
 	if (curr->sched_class != &wrr_sched_class)
 		return;
@@ -45,29 +47,27 @@ static void update_curr_wrr(struct rq *rq)
 		      max(curr->se.statistics.exec_max, delta_exec));
 
 	curr->se.sum_exec_runtime += delta_exec;
-	account_group_exec_runtime(curr, delta_exec);
+//	account_group_exec_runtime(curr, delta_exec);
 
 	curr->se.exec_start = rq->clock_task;
 	cpuacct_charge(curr, delta_exec);
 
-	//sched_rt_avg_update(rq, delta_exec);
+	//sched_rt_avg_update(rq, delta_exec); //it is for optimizing.
 	
-	/*	would erasing this part be right
-	if (!rt_bandwidth_enabled())
-		return;
+	//	would erasing this part be right
+//	if (!rt_bandwidth_enabled())
+//		return;
 
-	for_each_sched_rt_entity(rt_se) {
-		rt_rq = rt_rq_of_se(rt_se);
+/*	for_each_sched_wrr_entity(wrr_se) {
+		wrr_rq = wrr_rq_of_se(wrr_se);
 
-		if (sched_rt_runtime(rt_rq) != RUNTIME_INF) {
-			raw_spin_lock(&rt_rq->rt_runtime_lock);
-			rt_rq->rt_time += delta_exec;
-			if (sched_rt_runtime_exceeded(rt_rq))
-				resched_task(curr);
-			raw_spin_unlock(&rt_rq->rt_runtime_lock);
-		}
+		raw_spin_lock(&wrr_rq->wrr_runtime_lock);
+		wrr_rq->wrr_time += delta_exec;
+		if (sched_wrr_runtime_exceeded(wrr_rq))
+			resched_task(curr);
+		raw_spin_unlock(&wrr_rq->wrr_runtime_lock);
 	}
-	*/
+*/	
 }
 
 static inline int on_wrr_rq(struct sched_wrr_entity *wrr_se) {
@@ -169,7 +169,7 @@ static void set_curr_task_wrr(struct rq *rq) {
 
 static void task_tick_wrr(struct rq *rq, struct task_struct *p, int queued){
 
- 	struct sched_wrr_entity *wrr_se = &p->wrr;
+// 	struct sched_wrr_entity *wrr_se = &p->wrr;
 
 	update_curr_wrr(rq);
 	
@@ -179,13 +179,14 @@ static void task_tick_wrr(struct rq *rq, struct task_struct *p, int queued){
 
 	p->wrr.time_slice = p->wrr.weight * 10;
 	
-	for_each_sched_wrr_entity(wrr_se) {
-		if(p->wrr.run_list.prev != p->wrr.run_list.next) {
+
+//	for_each_sched_wrr_entity(wrr_se) {
+//		if(p->wrr.run_list.prev != p->wrr.run_list.next) {
 			requeue_task_wrr(rq,p);
 			set_tsk_need_resched(p);
 			return;
-		}
-	}
+//		}
+//	}
 }
 
 #ifdef CONFIG_SMP
