@@ -4685,7 +4685,7 @@ SYSCALL_DEFINE2(sched_rr_get_interval, pid_t, pid,
 
 	if (pid < 0)
 		return -EINVAL;
-
+	printk(KERN_DEBUG "Start sched_rr_get_interval");
 	retval = -ESRCH;
 	rcu_read_lock();
 	p = find_process_by_pid(pid);
