@@ -5,6 +5,7 @@
 #include "sched.h"
 #include "wrr.h"
 
+static unsigned long next_balance;
 
 int wrr_set_weight(struct sched_wrr_entity * entity, int weight) {
 	if (weight > WRR_MAX_WEIGHT || weight < WRR_MIN_WEIGHT)
@@ -23,6 +24,8 @@ void init_sched_wrr_class() {
 	wrr_entity = &current->wrr;
 	rwlock_init(&wrr_entity->weight_lock);
 	wrr_set_weight(wrr_entity, 10);
+	
+	next_balance = jiffies + 2 * HZ;
 }
 
 static void update_curr_wrr(struct rq *rq)
@@ -252,3 +255,23 @@ const struct sched_class wrr_sched_class = {
 	.prio_changed		= prio_changed_wrr,
 	.switched_to		= switched_to_wrr,
 };
+
+
+void wrr_load_balance();
+
+/*
+ * called periodically by core.c
+ */
+void wrr_trigger_load_balance(struct rq *rq, int cpu) {
+	if (time_after_eq(jiffies, next_balance)) {
+		next_balance = jiffies + 2*HZ;
+		printk(KERN_ERR "CPU: %d\n", cpu);//load_balance();
+	}
+}
+
+void wrr_load_balance() {
+	int this_cpu = smp_processor_id();
+	struct rq *this_rq = cpu_rq(this_cpu);
+	enum cpu_idle_type idle = this_rq->idle_balance ?
+						CPU_IDLE : CPU_NOT_IDLE;
+}
