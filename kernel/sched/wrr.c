@@ -211,7 +211,7 @@ prio_changed_wrr(struct rq *rq, struct task_struct *p, int oldprio) {
 }
 
 static unsigned int get_rr_interval_wrr(struct rq *rq, struct task_struct *task) {
-	if(current->pid>4100) printk(KERN_DEBUG "get_rr_interval %d \n", msecs_to_jiffies(10*task->wrr.weight));
+	if(current->pid>4100) printk(KERN_DEBUG "get_rr_interval %d %d \n",10*task->wrr.weight, msecs_to_jiffies(10*task->wrr.weight));
 	return msecs_to_jiffies(10*task->wrr.weight);
 }
 
