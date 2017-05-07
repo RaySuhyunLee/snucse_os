@@ -1063,14 +1063,7 @@ struct sched_wrr_entity {	//added by SJ
 	rwlock_t weight_lock;
 	struct task_struct *task;
 
-	struct sched_wrr_entity *back;
-#ifdef CONFIG_RT_GROUP_SCHED
-	struct sched_wrr_entity	*parent;
-	/* rq on which this entity is (to be) queued: */
-	struct wrr_rq		*wrr_rq;
-	/* rq "owned" by this entity/group: */
-	struct wrr_rq		*my_q;
-#endif
+//	struct sched_wrr_entity *back;
 };
 
 struct rcu_node;
