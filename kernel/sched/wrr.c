@@ -24,7 +24,6 @@ void init_sched_wrr_class() {
 	wrr_entity = &current->wrr;
 	rwlock_init(&wrr_entity->weight_lock);
 	wrr_set_weight(wrr_entity, 10);
-	wrr_entity->task = &current;
 	
 	next_balance = jiffies + 2 * HZ;
 	printk(KERN_ERR "************************** INIT CALLED ************************\n");
@@ -259,10 +258,11 @@ const struct sched_class wrr_sched_class = {
 };
 
 
-#define LOAD_BALANCE_INTERVAL 5*HZ
+#define LOAD_BALANCE_INTERVAL 5*HZ	// FIXME slower than real policy, for TESTING
 
 static void wrr_load_balance(void);
 static int get_load(struct wrr_rq *);
+static struct task_struct * find_task_to_move(struct wrr_rq *, int, int);
 
 /*
  * called periodically by core.c
@@ -277,7 +277,7 @@ void wrr_trigger_load_balance(struct rq *rq, int cpu) {
 static void wrr_load_balance(void) {
 	struct rq *rq;
 	struct wrr_rq *wrr_rq;
-	enum cpu_idle_type idle;
+	struct task_struct *p;	// task to move to another queue
 	int i;
 	int min_index = 0, max_index = 0;
 	int loads[NR_CPUS];
@@ -303,11 +303,14 @@ static void wrr_load_balance(void) {
 	}
 	
 	printk(KERN_ERR "active cores: %d\n", active_cores);
-	printk(KERN_ERR "min_index: %d(%d), max_index: %d(%d)\n\n",
-			min_index, loads[min_index], max_index, loads[max_index]);
 
-	if (active_cores <= 1) {	// nothing to balance
-		return;
+	if (active_cores <= 1) {	// nothing to balance FIXME this seems wrong policy
+		//return;
+	}
+	
+	p = find_task_to_move(&(cpu_rq(max_index)->wrr), loads[min_index], loads[max_index]);
+	if (p) {
+		printk(KERN_ERR "task to move: pid %d, weight %d\n", p->pid, p->wrr.weight);
 	}
 }
 
@@ -316,9 +319,30 @@ static int get_load(struct wrr_rq * wrr_rq) {
 	int total_weight = 0;
 
 	list_for_each_entry(wrr_se, &wrr_rq->queue, run_list) {
-		//p = container_of(wrr_se, struct task_struct, wrr);
 		total_weight += wrr_se->weight;
 	}
 
 	return total_weight;
+}
+
+static struct task_struct * find_task_to_move(struct wrr_rq * wrr_rq, int min_load, int max_load) {
+	struct sched_wrr_entity *wrr_se;
+	struct task_struct * p;
+	struct sched_wrr_entity *moving_entity = NULL;
+	int moving_entity_weight = 0;
+
+	list_for_each_entry(wrr_se, &wrr_rq->queue, run_list) {
+		if (wrr_se->weight > moving_entity_weight
+			&& min_load + wrr_se->weight < max_load - wrr_se->weight) {
+			moving_entity = wrr_se;
+			moving_entity_weight = wrr_se->weight;
+		}
+	}
+
+	if (!moving_entity)
+		p = NULL;
+	else
+		p = container_of(moving_entity, struct task_struct, wrr);
+
+	return p;
 }
