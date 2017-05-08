@@ -24,8 +24,10 @@ void init_sched_wrr_class() {
 	wrr_entity = &current->wrr;
 	rwlock_init(&wrr_entity->weight_lock);
 	wrr_set_weight(wrr_entity, 10);
+	wrr_entity->task = &current;
 	
 	next_balance = jiffies + 2 * HZ;
+	printk(KERN_ERR "************************** INIT CALLED ************************\n");
 }
 
 static void update_curr_wrr(struct rq *rq)
@@ -80,7 +82,7 @@ static inline int on_wrr_rq(struct sched_wrr_entity *wrr_se) {
 
 static void enqueue_task_wrr(struct rq *rq, struct task_struct *p, int flag) {
 	struct sched_wrr_entity *wrr_se = &p->wrr; //&(p->wrr)
-
+	
 	//if(on_wrr_rq(wrr_se)) return;
 
 	if(current->pid>5000) printk(KERN_DEBUG "enqueue_task_wrr\n");
@@ -257,14 +259,17 @@ const struct sched_class wrr_sched_class = {
 };
 
 
+#define LOAD_BALANCE_INTERVAL 5*HZ
+
 static void wrr_load_balance(void);
+static int get_load(struct wrr_rq *);
 
 /*
  * called periodically by core.c
  */
 void wrr_trigger_load_balance(struct rq *rq, int cpu) {
 	if (time_after_eq(jiffies, next_balance)) {
-		next_balance = jiffies + 2*HZ;
+		next_balance = jiffies + LOAD_BALANCE_INTERVAL;
 		wrr_load_balance();
 	}
 }
@@ -274,17 +279,46 @@ static void wrr_load_balance(void) {
 	struct wrr_rq *wrr_rq;
 	enum cpu_idle_type idle;
 	int i;
-	
-	#define get_idle(rq) (rq)->idle_balance ? CPU_IDLE : CPU_NOT_IDLE
+	int min_index = 0, max_index = 0;
+	int loads[NR_CPUS];
+	int active_cores = 0;	// number of active cores
 	
 	// calculate load of each cpu
 	for_each_possible_cpu(i) {
 		rq = cpu_rq(i);
 		wrr_rq = &rq->wrr;
-		//printk(KERN_ERR "CPU %d: %d tasks in queue\n\n", i, wrr_rq->wrr_nr_running);
+		printk(KERN_ERR "CPU %d: %d tasks in queue\n", i, wrr_rq->wrr_nr_running);
 		
-		// put actual load balancing logic here
+		active_cores += wrr_rq->wrr_nr_running > 0;
+		
+		loads[i] = get_load(wrr_rq);
+
+		// find minimum/maximum load among cores
+		if(loads[min_index] > loads[i]) {
+			min_index = i;
+		}
+		if(loads[max_index] < loads[i]) {
+			max_index = i;
+		}
 	}
 	
-	#undef get_idle(rq)
+	printk(KERN_ERR "active cores: %d\n", active_cores);
+	printk(KERN_ERR "min_index: %d(%d), max_index: %d(%d)\n\n",
+			min_index, loads[min_index], max_index, loads[max_index]);
+
+	if (active_cores <= 1) {	// nothing to balance
+		return;
+	}
+}
+
+static int get_load(struct wrr_rq * wrr_rq) {
+	struct sched_wrr_entity *wrr_se;
+	int total_weight = 0;
+
+	list_for_each_entry(wrr_se, &wrr_rq->queue, run_list) {
+		//p = container_of(wrr_se, struct task_struct, wrr);
+		total_weight += wrr_se->weight;
+	}
+
+	return total_weight;
 }
