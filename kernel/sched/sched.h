@@ -324,6 +324,7 @@ struct cfs_rq {
 struct wrr_rq {
 	struct load_weight load;
 	unsigned int wrr_nr_running, h_nr_running;
+	int total_weight;
 
 	struct list_head queue;
 

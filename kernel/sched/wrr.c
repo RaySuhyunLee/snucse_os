@@ -5,6 +5,8 @@
 #include "sched.h"
 #include "wrr.h"
 
+//int cpu_i = 0;
+DEFINE_SPINLOCK(cpu_lock);
 
 void wrr_set_time_slice(struct sched_wrr_entity* wrr_se) {
 	wrr_se->time_slice = msecs_to_jiffies(wrr_se->weight * 10);
@@ -37,9 +39,7 @@ void init_sched_wrr_class() {
 	wrr_set_weight(wrr_entity, 10);
 }
 
-
-static void update_curr_wrr(struct rq *rq)
-{
+static void update_curr_wrr(struct rq *rq) {
 	struct task_struct *curr = rq->curr;
 //	struct sched_wrr_entity *wrr_se = &curr->wrr;
 //	struct wrr_rq *wrr_rq = wrr_rq_of_se(wrr_se);
@@ -97,6 +97,8 @@ static void enqueue_task_wrr(struct rq *rq, struct task_struct *p, int flag) {
 
 	list_add_tail_rcu(&wrr_se->run_list, &rq->wrr.queue);
 	++rq -> wrr.wrr_nr_running;
+	
+	rq->wrr.total_weight += p->wrr.weight; //
 
 	inc_nr_running(rq);
 }
@@ -108,6 +110,7 @@ static void dequeue_task_wrr(struct rq *rq, struct task_struct *p, int flag) {
 	update_curr_wrr(rq);	//I think I have to implement this thing
 	list_del_rcu(&wrr_se->run_list);
 	--rq -> wrr.wrr_nr_running;
+	rq->wrr.total_weight -= p->wrr.weight;
 
 	dec_nr_running(rq);
 }
@@ -135,6 +138,7 @@ void init_wrr_rq(struct wrr_rq *wrr_rq) {
 	//if(current->pid>5000) printk(KERN_DEBUG "init_wrr_rq\n");
 	INIT_LIST_HEAD(&wrr_rq->queue);
 	wrr_rq->wrr_nr_running = 0;
+	wrr_rq->total_weight = 0;
 }
 
 static struct task_struct *pick_next_task_wrr(struct rq *rq) {
@@ -164,7 +168,33 @@ static void put_prev_task_wrr(struct rq *rq, struct task_struct *prev) {
 
 #ifdef CONFIG_SMP
 	static int select_task_rq_wrr(struct task_struct *p, int sd_flag, int flag) {
-		return 0;
+		if(p->nr_cpus_allowed ==1 || (sd_flag != SD_BALANCE_WAKE && sd_flag != SD_BALANCE_FORK)) return task_cpu(p);
+
+		//static int cpu_i = 0;
+		int old_cpu = task_cpu(p);
+		int new_cpu = old_cpu;
+		int iter_cpu; 
+		struct rq *rq;
+		int min_weight = 0;
+		
+		//rcu_read_lock();
+	
+		rq = cpu_rq(old_cpu);
+		min_weight = rq -> wrr.total_weight;		
+
+		for_each_cpu(iter_cpu, cpu_online_mask){
+			rq = cpu_rq(iter_cpu);
+			
+			if (rq->wrr.total_weight < min_weight) {
+				min_weight = rq->wrr.total_weight;
+				new_cpu = iter_cpu;
+			}
+		}
+		
+		//rcu_read_unlock();
+		//int cpu_num =  (++cpu_i)%NR_CPUS;
+		//return cpu_num;
+		return new_cpu; 
 	}
 
 #endif
