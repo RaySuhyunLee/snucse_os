@@ -7,6 +7,17 @@ Our scheduler basically follows T.A's policy.
 ## High-Level Design & Implementation
 currently developing...
 
+
+# About time
+we initally set weight as 10.
+time_slice share same units of jiffies. So we use msces_to_jiffies.
+The time_slice is updated when the task is enqueued or requeued.
+
+# About shced_set_weight
+When it is called, it firstly check weight is in possible range (1 to 20).
+Next, we lock the rq and, check
+
+
 ## 2. Investigation
 
 
