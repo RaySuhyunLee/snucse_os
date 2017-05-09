@@ -1726,8 +1726,8 @@ void sched_fork(struct task_struct *p)
 	else if (!rt_prio(p->prio))
 		p->sched_class = &fair_sched_class;
 
-	if (p->pid > 5000)
-		printk(KERN_DEBUG "process(%d) policy: %d class: %d (wrr: %d)\n", p->pid, p->policy, p->sched_class, &wrr_sched_class);
+//	if (p->pid > 5000)
+//		printk(KERN_DEBUG "process(%d) policy: %d class: %d (wrr: %d)\n", p->pid, p->policy, p->sched_class, &wrr_sched_class);
 	
 	if (p->sched_class->task_fork)
 		p->sched_class->task_fork(p);
@@ -4673,7 +4673,7 @@ SYSCALL_DEFINE2(sched_rr_get_interval, pid_t, pid,
 	retval = -ESRCH;
 	rcu_read_lock();
 	p = find_process_by_pid(pid);
-	printk(KERN_DEBUG "%d %d %d %d\n", p, p->pid , p->policy, p->sched_class);
+//	printk(KERN_DEBUG "%d %d %d %d\n", p, p->pid , p->policy, p->sched_class);
 	if (!p)
 		goto out_unlock;
 

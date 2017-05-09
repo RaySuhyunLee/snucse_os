@@ -8,11 +8,23 @@
 //int cpu_i = 0;
 DEFINE_SPINLOCK(cpu_lock);
 
+void wrr_set_time_slice(struct sched_wrr_entity* wrr_se) {
+	wrr_se->time_slice = msecs_to_jiffies(wrr_se->weight * 10);
+}
+
 int wrr_set_weight(struct sched_wrr_entity * entity, int weight) {
-	if (weight > WRR_MAX_WEIGHT || weight < WRR_MIN_WEIGHT)
+	struct task_struct *p;
+	struct rq *task_rq;
+
+ 	if (weight > WRR_MAX_WEIGHT || weight < WRR_MIN_WEIGHT)
 		return -EINVAL;
+
 	write_lock(&entity->weight_lock);
 	entity->weight = weight;
+	p = container_of(entity, struct task_struct, wrr);
+	task_rq = cpu_rq(task_thread_info(p)->cpu);
+	if(p != task_rq->curr)
+		wrr_set_time_slice(entity);
 	write_unlock(&entity->weight_lock);
 	return 0;
 }
@@ -77,19 +89,18 @@ static inline int on_wrr_rq(struct sched_wrr_entity *wrr_se) {
 static void enqueue_task_wrr(struct rq *rq, struct task_struct *p, int flag) {
 	struct sched_wrr_entity *wrr_se = &p->wrr; //&(p->wrr)
 
-	//if(on_wrr_rq(wrr_se)) return;
-
 //	if(current->pid>5000) printk(KERN_DEBUG "enqueue_task_wrr\n");
 	if(flag & ENQUEUE_WAKEUP) 
 		wrr_se->timeout = 0;
+	
+	wrr_set_time_slice(wrr_se); //initiate time_slice (10 * weight)
 
-	list_add_tail(&wrr_se->run_list, &rq->wrr.queue);
+	list_add_tail_rcu(&wrr_se->run_list, &rq->wrr.queue);
 	++rq -> wrr.wrr_nr_running;
 	
 	rq->wrr.total_weight += p->wrr.weight; //
 
 	inc_nr_running(rq);
-//	if(current->pid>5000) printk(KERN_DEBUG "Game\n");
 }
 
 static void dequeue_task_wrr(struct rq *rq, struct task_struct *p, int flag) {
@@ -97,7 +108,7 @@ static void dequeue_task_wrr(struct rq *rq, struct task_struct *p, int flag) {
 	
 //	if(current->pid>5000) printk(KERN_DEBUG "dequeue_task_wrr\n");
 	update_curr_wrr(rq);	//I think I have to implement this thing
-	list_del(&wrr_se->run_list);
+	list_del_rcu(&wrr_se->run_list);
 	--rq -> wrr.wrr_nr_running;
 	rq->wrr.total_weight -= p->wrr.weight;
 
@@ -107,15 +118,16 @@ static void dequeue_task_wrr(struct rq *rq, struct task_struct *p, int flag) {
 static void requeue_task_wrr(struct rq *rq, struct task_struct *p) {
 	struct wrr_rq *wrr_rq = &rq->wrr;
 	struct sched_wrr_entity *wrr_se = &p->wrr;
-
+	wrr_set_time_slice(wrr_se);
 //	if(current->pid>5000) printk(KERN_DEBUG "requeue_task_wrr\n");
-	list_move_tail(&wrr_se->run_list, &wrr_rq->queue);
+	list_move_tail(&wrr_se->run_list, &wrr_rq->queue);//rt.c does not lock it
 }
 
 static void yield_task_wrr(struct rq *rq) {
 	struct sched_wrr_entity *wrr_se = &rq->curr->wrr;
 	struct wrr_rq *wrr_rq;
 
+	wrr_set_time_slice(wrr_se);
 //	if(current->pid>5000) printk(KERN_DEBUG "yield_task_wrr\n");
 	list_move_tail(&wrr_se->run_list, &rq->wrr.queue);
 }
@@ -202,9 +214,9 @@ static void task_tick_wrr(struct rq *rq, struct task_struct *p, int queued){
 	if(p->policy != SCHED_WRR) return;
 
 	if(--p->wrr.time_slice) return;
-
-	p->wrr.time_slice = p->wrr.weight * 10;
+	wrr_set_time_slice(&p->wrr);
 	
+//	if(p->pid > 4100 && p->pid< 4105 ) printk(KERN_DEBUG "%d\n", p->wrr.time_slice);
 
 //	for_each_sched_wrr_entity(wrr_se) {
 //		if(p->wrr.run_list.prev != p->wrr.run_list.next) {
@@ -243,7 +255,6 @@ prio_changed_wrr(struct rq *rq, struct task_struct *p, int oldprio) {
 }
 
 static unsigned int get_rr_interval_wrr(struct rq *rq, struct task_struct *task) {
-//	if(current->pid>4100) printk(KERN_DEBUG "get_rr_interval %d %d \n",10*task->wrr.weight, msecs_to_jiffies(10*task->wrr.weight));
 	return msecs_to_jiffies(10*task->wrr.weight);
 }
 
@@ -286,3 +297,14 @@ const struct sched_class wrr_sched_class = {
 	.prio_changed		= prio_changed_wrr,
 	.switched_to		= switched_to_wrr,
 };
+
+#ifdef CONFIG_SCHED_DEBUG
+extern void print_wrr_rq(struct seq_file *m, int cpu, struct wrr_rq *wrr_rq);
+
+void print_wrr_stats(struct seq_file *m, int cpu){
+ 		struct rq* rq = cpu_rq(cpu);
+		print_wrr_rq(m,cpu, &rq->wrr);
+ }
+#endif /*CONFIG_SCHED_DEBUG */
+
+
