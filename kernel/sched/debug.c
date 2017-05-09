@@ -252,8 +252,6 @@ void print_wrr_rq(struct seq_file *m, int cpu, struct wrr_rq* wrr_rq) {
 
 #define P(x) \
 	SEQ_printf(m, "  .%-30s: %Ld\n", #x, (long long)(wrr_rq->x))
-#define PN(x) \
-	SEQ_printf(m, "  .%-30s: %Ld.%06ld\n", #x, SPLIT_NS(wrr_rq->x))
 
 	P(wrr_nr_running);
 	struct sched_wrr_entity* wrr_se;
@@ -262,16 +260,18 @@ void print_wrr_rq(struct seq_file *m, int cpu, struct wrr_rq* wrr_rq) {
 	
 #define PE(x) \
 	SEQ_printf(m, "  .%-30s: %Ld\n", #x, (long long)(wrr_se->x))
+#define PEN(x) \
+	SEQ_printf(m, "  .%-30s: %Ld\n", #x, (long long) jiffies_to_msecs(wrr_se->x))
 	list_for_each_entry_rcu(wrr_se, &wrr_rq->queue, run_list) {
 	 	if(wrr_se == NULL) {
 	  		SEQ_printf(m ,"  sched_wrr_entity is NULL in queue\n");
 			return 1;
 	 	}
 		task = container_of(wrr_se, struct task_struct, wrr);
-		if(task == NULL) SEQ_printf(m, "JaeD");
-		else { SEQ_printf(m,"%s %d\n", task->comm, task->pid);}
+		if(task == NULL) SEQ_printf(m, "NULL\n");
+		else { SEQ_printf(m,"\nPID : %d NAME : %s\n", task->pid, task->comm);}
  		PE(weight);
-		PE(time_slice);
+		PEN(time_slice);
 	}
 	//print the element of queue.
 #undef PN

@@ -4672,7 +4672,7 @@ SYSCALL_DEFINE2(sched_rr_get_interval, pid_t, pid,
 	retval = -ESRCH;
 	rcu_read_lock();
 	p = find_process_by_pid(pid);
-	printk(KERN_DEBUG "%d %d %d %d\n", p, p->pid , p->policy, p->sched_class);
+//	printk(KERN_DEBUG "%d %d %d %d\n", p, p->pid , p->policy, p->sched_class);
 	if (!p)
 		goto out_unlock;
 
