@@ -82,15 +82,13 @@ static inline int on_wrr_rq(struct sched_wrr_entity *wrr_se) {
 static void enqueue_task_wrr(struct rq *rq, struct task_struct *p, int flag) {
 	struct sched_wrr_entity *wrr_se = &p->wrr; //&(p->wrr)
 
-	//if(on_wrr_rq(wrr_se)) return;
-
 //	if(current->pid>5000) printk(KERN_DEBUG "enqueue_task_wrr\n");
 	if(flag & ENQUEUE_WAKEUP) 
 		wrr_se->timeout = 0;
 	
 	wrr_set_time_slice(wrr_se); //initiate time_slice (10 * weight)
 
-	list_add_tail(&wrr_se->run_list, &rq->wrr.queue);
+	list_add_tail_rcu(&wrr_se->run_list, &rq->wrr.queue);
 	++rq -> wrr.wrr_nr_running;
 
 	inc_nr_running(rq);
@@ -101,7 +99,7 @@ static void dequeue_task_wrr(struct rq *rq, struct task_struct *p, int flag) {
 	
 //	if(current->pid>5000) printk(KERN_DEBUG "dequeue_task_wrr\n");
 	update_curr_wrr(rq);	//I think I have to implement this thing
-	list_del(&wrr_se->run_list);
+	list_del_rcu(&wrr_se->run_list);
 	--rq -> wrr.wrr_nr_running;
 
 	dec_nr_running(rq);
@@ -110,15 +108,16 @@ static void dequeue_task_wrr(struct rq *rq, struct task_struct *p, int flag) {
 static void requeue_task_wrr(struct rq *rq, struct task_struct *p) {
 	struct wrr_rq *wrr_rq = &rq->wrr;
 	struct sched_wrr_entity *wrr_se = &p->wrr;
-
+	wrr_set_time_slice(wrr_se);
 //	if(current->pid>5000) printk(KERN_DEBUG "requeue_task_wrr\n");
-	list_move_tail(&wrr_se->run_list, &wrr_rq->queue);
+	list_move_tail(&wrr_se->run_list, &wrr_rq->queue);//rt.c does not lock it
 }
 
 static void yield_task_wrr(struct rq *rq) {
 	struct sched_wrr_entity *wrr_se = &rq->curr->wrr;
 	struct wrr_rq *wrr_rq;
 
+	wrr_set_time_slice(wrr_se);
 //	if(current->pid>5000) printk(KERN_DEBUG "yield_task_wrr\n");
 	list_move_tail(&wrr_se->run_list, &rq->wrr.queue);
 }
