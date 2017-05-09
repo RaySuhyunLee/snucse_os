@@ -83,14 +83,10 @@ static void enqueue_task_wrr(struct rq *rq, struct task_struct *p, int flag) {
 	if(flag & ENQUEUE_WAKEUP) 
 		wrr_se->timeout = 0;
 
-//	if(current->pid>5000) printk(KERN_DEBUG "Diablo\n");
 	list_add_tail(&wrr_se->run_list, &rq->wrr.queue);
-//	if(current->pid>5000) printk(KERN_DEBUG "Is\n");
 	++rq -> wrr.wrr_nr_running;
-//	if(current->pid>5000) printk(KERN_DEBUG "God\n");
 
 	inc_nr_running(rq);
-//	if(current->pid>5000) printk(KERN_DEBUG "Game\n");
 }
 
 static void dequeue_task_wrr(struct rq *rq, struct task_struct *p, int flag) {
@@ -100,6 +96,7 @@ static void dequeue_task_wrr(struct rq *rq, struct task_struct *p, int flag) {
 	update_curr_wrr(rq);	//I think I have to implement this thing
 	list_del(&wrr_se->run_list);
 	--rq -> wrr.wrr_nr_running;
+	if(p->pid <5010 && p->pid >5005) printk(KERN_DEBUG "%d %d\n", p->pid, rq->wrr.wrr_nr_running);
 
 	dec_nr_running(rq);
 }
@@ -175,9 +172,9 @@ static void task_tick_wrr(struct rq *rq, struct task_struct *p, int queued){
 	if(p->policy != SCHED_WRR) return;
 
 	if(--p->wrr.time_slice) return;
-
 	p->wrr.time_slice = p->wrr.weight * 10;
 	
+	if(current->pid > 4100) printk(KERN_DEBUG "%d\n", p->wrr.time_slice);
 
 //	for_each_sched_wrr_entity(wrr_se) {
 //		if(p->wrr.run_list.prev != p->wrr.run_list.next) {
@@ -216,7 +213,6 @@ prio_changed_wrr(struct rq *rq, struct task_struct *p, int oldprio) {
 }
 
 static unsigned int get_rr_interval_wrr(struct rq *rq, struct task_struct *task) {
-//	if(current->pid>4100) printk(KERN_DEBUG "get_rr_interval %d %d \n",10*task->wrr.weight, msecs_to_jiffies(10*task->wrr.weight));
 	return msecs_to_jiffies(10*task->wrr.weight);
 }
 
@@ -259,3 +255,14 @@ const struct sched_class wrr_sched_class = {
 	.prio_changed		= prio_changed_wrr,
 	.switched_to		= switched_to_wrr,
 };
+
+#ifdef CONFIG_SCHED_DEBUG
+extern void print_wrr_rq(struct seq_file *m, int cpu, struct wrr_rq *wrr_rq);
+
+void print_wrr_stats(struct seq_file *m, int cpu){
+ 		struct rq* rq = cpu_rq(cpu);
+		print_wrr_rq(m,cpu, &rq->wrr);
+ }
+#endif /*CONFIG_SCHED_DEBUG */
+
+
