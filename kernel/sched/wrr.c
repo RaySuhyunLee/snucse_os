@@ -11,13 +11,18 @@ void wrr_set_time_slice(struct sched_wrr_entity* wrr_se) {
 }
 
 int wrr_set_weight(struct sched_wrr_entity * entity, int weight) {
-	struct task_struct* p;
+	struct task_struct *p;
+	struct rq *task_rq;
+
  	if (weight > WRR_MAX_WEIGHT || weight < WRR_MIN_WEIGHT)
 		return -EINVAL;
+
 	write_lock(&entity->weight_lock);
 	entity->weight = weight;
 	p = container_of(entity, struct task_struct, wrr);
-	if(p != current) wrr_set_time_slice(entity);
+	task_rq = cpu_rq(task_thread_info(p)->cpu);
+	if(p != task_rq->curr)
+		wrr_set_time_slice(entity);
 	write_unlock(&entity->weight_lock);
 	return 0;
 }
