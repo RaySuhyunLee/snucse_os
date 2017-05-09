@@ -254,10 +254,28 @@ void print_wrr_rq(struct seq_file *m, int cpu, struct wrr_rq* wrr_rq) {
 	SEQ_printf(m, "  .%-30s: %Ld\n", #x, (long long)(wrr_rq->x))
 #define PN(x) \
 	SEQ_printf(m, "  .%-30s: %Ld.%06ld\n", #x, SPLIT_NS(wrr_rq->x))
+
 	P(wrr_nr_running);
+	struct sched_wrr_entity* wrr_se;
+	struct task_struct *task;
+	printk(KERN_DEBUG "after wrr_nr_running");
+	
+#define PE(x) \
+	SEQ_printf(m, "  .%-30s: %Ld\n", #x, (long long)(wrr_se->x))
+	list_for_each_entry_rcu(wrr_se, &wrr_rq->queue, run_list) {
+	 	if(wrr_se == NULL) {
+	  		SEQ_printf(m ,"  sched_wrr_entity is NULL in queue\n");
+			return 1;
+	 	}
+		task = container_of(wrr_se, struct task_struct, wrr);
+		if(task == NULL) SEQ_printf(m, "JaeD");
+		else { SEQ_printf(m,"%s %d\n", task->comm, task->pid);}
+ 		PE(weight);
+		PE(time_slice);
+	}
 	//print the element of queue.
 #undef PN
-
+#undef P
 }
 
 void print_rt_rq(struct seq_file *m, int cpu, struct rt_rq *rt_rq)
@@ -272,7 +290,6 @@ void print_rt_rq(struct seq_file *m, int cpu, struct rt_rq *rt_rq)
 	SEQ_printf(m, "  .%-30s: %Ld\n", #x, (long long)(rt_rq->x))
 #define PN(x) \
 	SEQ_printf(m, "  .%-30s: %Ld.%06ld\n", #x, SPLIT_NS(rt_rq->x))
-
 	P(rt_nr_running);
 	P(rt_throttled);
 	PN(rt_time);
@@ -337,11 +354,11 @@ do {									\
 	P(sched_count);
 	P(sched_goidle);
 #ifdef CONFIG_SMP
-	P64(avg_idle);
+//	P64(avg_idle);
 #endif
 
-	P(ttwu_count);
-	P(ttwu_local);
+//	P(ttwu_count);
+//	P(ttwu_local);
 
 #undef P
 #undef P64
@@ -349,7 +366,7 @@ do {									\
 	spin_lock_irqsave(&sched_debug_lock, flags);
 //	print_cfs_stats(m, cpu);
 //	print_rt_stats(m, cpu);
-
+	print_wrr_stats(m,cpu);
 	rcu_read_lock();
 	print_rq(m, rq, cpu);
 	rcu_read_unlock();
