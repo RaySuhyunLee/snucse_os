@@ -268,10 +268,10 @@ void print_wrr_rq(struct seq_file *m, int cpu, struct wrr_rq* wrr_rq) {
 			return 1;
 	 	}
 		task = container_of(wrr_se, struct task_struct, wrr);
-		if(task == NULL) SEQ_printf(m, "JaeD");
-		else { SEQ_printf(m,"%s %d\n", task->comm, task->pid);}
+		if(task == NULL) SEQ_printf(m, "NULL\n");
+		else { SEQ_printf(m,"PID : %d NAME : %s\n", task->pid, task->comm);}
  		PE(weight);
-		PE(time_slice);
+		SEQ_printf(m,"  .time_slice: %Ld\n", (long long) jiffies_to_msecs(wrr_se->time_slice)); 
 	}
 	//print the element of queue.
 #undef PN

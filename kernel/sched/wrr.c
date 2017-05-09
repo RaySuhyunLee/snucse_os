@@ -178,7 +178,7 @@ static void task_tick_wrr(struct rq *rq, struct task_struct *p, int queued){
 	if(p->policy != SCHED_WRR) return;
 
 	if(--p->wrr.time_slice) return;
-	wrr_set_time_slice(p->wrr);
+	wrr_set_time_slice(&p->wrr);
 	
 	if(p->pid > 4100 && p->pid< 4105 ) printk(KERN_DEBUG "%d\n", p->wrr.time_slice);
 
