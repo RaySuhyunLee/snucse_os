@@ -26,7 +26,6 @@ void init_sched_wrr_class() {
 	wrr_set_weight(wrr_entity, 10);
 	
 	next_balance = jiffies + 2 * HZ;
-	printk(KERN_ERR "************************** INIT CALLED ************************\n");
 }
 
 static void update_curr_wrr(struct rq *rq)
@@ -262,7 +261,7 @@ const struct sched_class wrr_sched_class = {
 
 static void wrr_load_balance(void);
 static int get_load(struct wrr_rq *);
-static struct task_struct * find_task_to_move(struct wrr_rq *, int, int);
+static struct task_struct * find_task_to_move(struct rq *, int, int);
 
 /*
  * called periodically by core.c
@@ -283,11 +282,17 @@ static void wrr_load_balance(void) {
 	int loads[NR_CPUS];
 	int active_cores = 0;	// number of active cores
 	
+	preempt_disable();
+	rcu_read_lock();
+
 	// calculate load of each cpu
 	for_each_possible_cpu(i) {
 		rq = cpu_rq(i);
+
 		wrr_rq = &rq->wrr;
 		printk(KERN_ERR "CPU %d: %d tasks in queue\n", i, wrr_rq->wrr_nr_running);
+		if (rq->curr)
+			printk(KERN_ERR "task(%d) running\n", rq->curr->pid);
 		
 		active_cores += wrr_rq->wrr_nr_running > 0;
 		
@@ -308,10 +313,24 @@ static void wrr_load_balance(void) {
 		//return;
 	}
 	
-	p = find_task_to_move(&(cpu_rq(max_index)->wrr), loads[min_index], loads[max_index]);
+	p = find_task_to_move(cpu_rq(max_index), loads[min_index], loads[max_index]);
+	
+	rcu_read_unlock();	
+
 	if (p) {
 		printk(KERN_ERR "task to move: pid %d, weight %d\n", p->pid, p->wrr.weight);
+		// perform actual task migration
+		sched_info_dequeued(p);
+		dequeue_task_wrr(cpu_rq(max_index), p, 0);
+		set_task_cpu(p, min_index);
+		sched_info_queued(p);
+		enqueue_task_wrr(cpu_rq(min_index), p, 0);
+		wrr_rq = &cpu_rq(min_index)->wrr;	
+		printk(KERN_ERR "CPU %d: %d tasks in queue\n\n", min_index, wrr_rq->wrr_nr_running);
+		rq = NULL;
 	}
+
+	preempt_enable();
 }
 
 static int get_load(struct wrr_rq * wrr_rq) {
@@ -325,14 +344,22 @@ static int get_load(struct wrr_rq * wrr_rq) {
 	return total_weight;
 }
 
-static struct task_struct * find_task_to_move(struct wrr_rq * wrr_rq, int min_load, int max_load) {
+/*
+ * find the most proper task to move from one cpu to another.
+ */
+static struct task_struct * find_task_to_move(struct rq *this_rq, int min_load, int max_load) {
 	struct sched_wrr_entity *wrr_se;
+	struct wrr_rq *this_wrr_rq;
 	struct task_struct * p;
 	struct sched_wrr_entity *moving_entity = NULL;
 	int moving_entity_weight = 0;
 
-	list_for_each_entry(wrr_se, &wrr_rq->queue, run_list) {
-		if (wrr_se->weight > moving_entity_weight
+	this_wrr_rq = &this_rq -> wrr;
+
+	list_for_each_entry(wrr_se, &this_wrr_rq->queue, run_list) {
+		p = container_of(wrr_se, struct task_struct, wrr);
+		if (p != this_rq->curr
+			&&wrr_se->weight > moving_entity_weight
 			&& min_load + wrr_se->weight < max_load - wrr_se->weight) {
 			moving_entity = wrr_se;
 			moving_entity_weight = wrr_se->weight;
