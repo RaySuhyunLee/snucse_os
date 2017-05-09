@@ -8,14 +8,16 @@ Our scheduler basically follows T.A's policy.
 currently developing...
 
 
-# About time
+### About time
 we initally set weight as 10.
-time_slice share same units of jiffies. So we use msces_to_jiffies.
+time_slice share same units of jiffies. So we use msces_to_jiffies().
 The time_slice is updated when the task is enqueued or requeued.
 
-# About shced_set_weight
+### About shced_set_weight
 When it is called, it firstly check weight is in possible range (1 to 20).
-Next, we lock the rq and, check
+Next, we lock the entity to prevent access its weight.
+Then, check it is current running and, if it is not, change time_slice. Because it is already in the queue and running sched_entity will be requeued or dequeued.
+
 
 
 ## 2. Investigation
