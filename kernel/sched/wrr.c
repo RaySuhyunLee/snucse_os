@@ -7,11 +7,23 @@
 
 static unsigned long next_balance;
 
+void wrr_set_time_slice(struct sched_wrr_entity* wrr_se) {
+	wrr_se->time_slice = msecs_to_jiffies(wrr_se->weight * 10);
+}
+
 int wrr_set_weight(struct sched_wrr_entity * entity, int weight) {
-	if (weight > WRR_MAX_WEIGHT || weight < WRR_MIN_WEIGHT)
+	struct task_struct *p;
+	struct rq *task_rq;
+
+ 	if (weight > WRR_MAX_WEIGHT || weight < WRR_MIN_WEIGHT)
 		return -EINVAL;
+
 	write_lock(&entity->weight_lock);
 	entity->weight = weight;
+	p = container_of(entity, struct task_struct, wrr);
+	task_rq = cpu_rq(task_thread_info(p)->cpu);
+	if(p != task_rq->curr)
+		wrr_set_time_slice(entity);
 	write_unlock(&entity->weight_lock);
 	return 0;
 }
@@ -28,14 +40,13 @@ void init_sched_wrr_class() {
 	next_balance = jiffies + 2 * HZ;
 }
 
-static void update_curr_wrr(struct rq *rq)
-{
+static void update_curr_wrr(struct rq *rq) {
 	struct task_struct *curr = rq->curr;
-	//struct sched_rt_entity *rt_se = &curr->rt;
-	//struct rt_rq *rt_rq = rt_rq_of_se(rt_se);
+//	struct sched_wrr_entity *wrr_se = &curr->wrr;
+//	struct wrr_rq *wrr_rq = wrr_rq_of_se(wrr_se);
 	u64 delta_exec;
 
-	if(current->pid>5000) printk(KERN_DEBUG "update_curr_wrr\n");
+//	if(current->pid>5000) printk(KERN_DEBUG "update_curr_wrr\n");
 
 	if (curr->sched_class != &wrr_sched_class)
 		return;
@@ -48,29 +59,27 @@ static void update_curr_wrr(struct rq *rq)
 		      max(curr->se.statistics.exec_max, delta_exec));
 
 	curr->se.sum_exec_runtime += delta_exec;
-	account_group_exec_runtime(curr, delta_exec);
+//	account_group_exec_runtime(curr, delta_exec);
 
 	curr->se.exec_start = rq->clock_task;
 	cpuacct_charge(curr, delta_exec);
 
-	//sched_rt_avg_update(rq, delta_exec);
+	//sched_rt_avg_update(rq, delta_exec); //it is for optimizing.
 	
-	/*	would erasing this part be right
-	if (!rt_bandwidth_enabled())
-		return;
+	//	would erasing this part be right
+//	if (!rt_bandwidth_enabled())
+//		return;
 
-	for_each_sched_rt_entity(rt_se) {
-		rt_rq = rt_rq_of_se(rt_se);
+/*	for_each_sched_wrr_entity(wrr_se) {
+		wrr_rq = wrr_rq_of_se(wrr_se);
 
-		if (sched_rt_runtime(rt_rq) != RUNTIME_INF) {
-			raw_spin_lock(&rt_rq->rt_runtime_lock);
-			rt_rq->rt_time += delta_exec;
-			if (sched_rt_runtime_exceeded(rt_rq))
-				resched_task(curr);
-			raw_spin_unlock(&rt_rq->rt_runtime_lock);
-		}
+		raw_spin_lock(&wrr_rq->wrr_runtime_lock);
+		wrr_rq->wrr_time += delta_exec;
+		if (sched_wrr_runtime_exceeded(wrr_rq))
+			resched_task(curr);
+		raw_spin_unlock(&wrr_rq->wrr_runtime_lock);
 	}
-	*/
+*/	
 }
 
 static inline int on_wrr_rq(struct sched_wrr_entity *wrr_se) {
@@ -80,30 +89,29 @@ static inline int on_wrr_rq(struct sched_wrr_entity *wrr_se) {
 
 static void enqueue_task_wrr(struct rq *rq, struct task_struct *p, int flag) {
 	struct sched_wrr_entity *wrr_se = &p->wrr; //&(p->wrr)
-	
-	//if(on_wrr_rq(wrr_se)) return;
 
-	if(current->pid>5000) printk(KERN_DEBUG "enqueue_task_wrr\n");
+//	if(current->pid>5000) printk(KERN_DEBUG "enqueue_task_wrr\n");
 	if(flag & ENQUEUE_WAKEUP) 
 		wrr_se->timeout = 0;
+	
+	wrr_set_time_slice(wrr_se); //initiate time_slice (10 * weight)
 
-	if(current->pid>5000) printk(KERN_DEBUG "Diablo\n");
-	list_add_tail(&wrr_se->run_list, &rq->wrr.queue);
-	if(current->pid>5000) printk(KERN_DEBUG "Is\n");
+	list_add_tail_rcu(&wrr_se->run_list, &rq->wrr.queue);
 	++rq -> wrr.wrr_nr_running;
-	if(current->pid>5000) printk(KERN_DEBUG "God\n");
+	
+	rq->wrr.total_weight += p->wrr.weight; //
 
 	inc_nr_running(rq);
-	if(current->pid>5000) printk(KERN_DEBUG "Game\n");
 }
 
 static void dequeue_task_wrr(struct rq *rq, struct task_struct *p, int flag) {
 	struct sched_wrr_entity *wrr_se = &p->wrr;
 	
-	if(current->pid>5000) printk(KERN_DEBUG "dequeue_task_wrr\n");
+//	if(current->pid>5000) printk(KERN_DEBUG "dequeue_task_wrr\n");
 	update_curr_wrr(rq);	//I think I have to implement this thing
-	list_del(&wrr_se->run_list);
+	list_del_rcu(&wrr_se->run_list);
 	--rq -> wrr.wrr_nr_running;
+	rq->wrr.total_weight -= p->wrr.weight;
 
 	dec_nr_running(rq);
 }
@@ -111,16 +119,17 @@ static void dequeue_task_wrr(struct rq *rq, struct task_struct *p, int flag) {
 static void requeue_task_wrr(struct rq *rq, struct task_struct *p) {
 	struct wrr_rq *wrr_rq = &rq->wrr;
 	struct sched_wrr_entity *wrr_se = &p->wrr;
-
-	if(current->pid>5000) printk(KERN_DEBUG "requeue_task_wrr\n");
-	list_move_tail(&wrr_se->run_list, &wrr_rq->queue);
+	wrr_set_time_slice(wrr_se);
+//	if(current->pid>5000) printk(KERN_DEBUG "requeue_task_wrr\n");
+	list_move_tail(&wrr_se->run_list, &wrr_rq->queue);//rt.c does not lock it
 }
 
 static void yield_task_wrr(struct rq *rq) {
 	struct sched_wrr_entity *wrr_se = &rq->curr->wrr;
 	struct wrr_rq *wrr_rq;
 
-	if(current->pid>5000) printk(KERN_DEBUG "yield_task_wrr\n");
+	wrr_set_time_slice(wrr_se);
+//	if(current->pid>5000) printk(KERN_DEBUG "yield_task_wrr\n");
 	list_move_tail(&wrr_se->run_list, &rq->wrr.queue);
 }
 
@@ -130,6 +139,7 @@ void init_wrr_rq(struct wrr_rq *wrr_rq) {
 	//if(current->pid>5000) printk(KERN_DEBUG "init_wrr_rq\n");
 	INIT_LIST_HEAD(&wrr_rq->queue);
 	wrr_rq->wrr_nr_running = 0;
+	wrr_rq->total_weight = 0;
 }
 
 static struct task_struct *pick_next_task_wrr(struct rq *rq) {
@@ -154,51 +164,85 @@ static struct task_struct *pick_next_task_wrr(struct rq *rq) {
 
 static void put_prev_task_wrr(struct rq *rq, struct task_struct *prev) {
 	update_curr_wrr(rq);
-	if(current->pid>5000) printk(KERN_DEBUG "put_prev_task_wrr\n");
+//	if(current->pid>5000) printk(KERN_DEBUG "put_prev_task_wrr\n");
 }
 
 #ifdef CONFIG_SMP
 	static int select_task_rq_wrr(struct task_struct *p, int sd_flag, int flag) {
-		return 0;
+		if(p->nr_cpus_allowed ==1 || (sd_flag != SD_BALANCE_WAKE && sd_flag != SD_BALANCE_FORK)) return task_cpu(p);
+
+		//static int cpu_i = 0;
+		int old_cpu = task_cpu(p);
+		int new_cpu = old_cpu;
+		int iter_cpu; 
+		struct rq *rq;
+		int min_weight = 0;
+		
+		//rcu_read_lock();
+	
+		rq = cpu_rq(old_cpu);
+		min_weight = rq -> wrr.total_weight;		
+
+		for_each_cpu(iter_cpu, cpu_online_mask){
+			rq = cpu_rq(iter_cpu);
+			
+			if (rq->wrr.total_weight < min_weight) {
+				min_weight = rq->wrr.total_weight;
+				new_cpu = iter_cpu;
+			}
+		}
+		
+		//rcu_read_unlock();
+		//int cpu_num =  (++cpu_i)%NR_CPUS;
+		//return cpu_num;
+		return new_cpu; 
 	}
 
 #endif
 
 static void set_curr_task_wrr(struct rq *rq) {
 	struct task_struct *p = rq->curr;
-	if(current->pid>5000) printk(KERN_DEBUG "set_curr_task_wrr\n");
+//	if(current->pid>5000) printk(KERN_DEBUG "set_curr_task_wrr\n");
 	p->se.exec_start = rq->clock_task;
 }
 
 static void task_tick_wrr(struct rq *rq, struct task_struct *p, int queued){
-	if(current->pid>5000) printk(KERN_DEBUG "task_tick_wrr\n");
+
+// 	struct sched_wrr_entity *wrr_se = &p->wrr;
+
 	update_curr_wrr(rq);
+	
+	if(p->policy != SCHED_WRR) return;
 
-	if(--p->wrr.time_slice > 0) return;
+	if(--p->wrr.time_slice) return;
+	wrr_set_time_slice(&p->wrr);
+	
+//	if(p->pid > 4100 && p->pid< 4105 ) printk(KERN_DEBUG "%d\n", p->wrr.time_slice);
 
-	p-> wrr.time_slice = 10;
-
-	if(p->wrr.run_list.prev != p->wrr.run_list.next) {
-		requeue_task_wrr(rq,p);
-		set_tsk_need_resched(p);
-	}
+//	for_each_sched_wrr_entity(wrr_se) {
+//		if(p->wrr.run_list.prev != p->wrr.run_list.next) {
+			requeue_task_wrr(rq,p);
+			set_tsk_need_resched(p);
+			return;
+//		}
+//	}
 }
 
 #ifdef CONFIG_SMP
 
 static void rq_online_wrr(struct rq *rq)
 {
-	if(current->pid>5000) printk(KERN_DEBUG "rq_online_wrr\n");
+//	if(current->pid>5000) printk(KERN_DEBUG "rq_online_wrr\n");
 }
 
 static void rq_offline_wrr(struct rq *rq)
 {
-	if(current->pid>5000) printk(KERN_DEBUG "rq_offline_wrr\n");
+//	if(current->pid>5000) printk(KERN_DEBUG "rq_offline_wrr\n");
 }
 
 static void switched_from_wrr(struct rq*rq, struct task_struct *p)
 {
-	if(current->pid>5000) printk(KERN_DEBUG "switched_from_wrr\n");
+//	if(current->pid>5000) printk(KERN_DEBUG "switched_from_wrr\n");
 	if (!p->on_rq)
 		return;
 }
@@ -208,16 +252,16 @@ static void switched_from_wrr(struct rq*rq, struct task_struct *p)
 
 static void
 prio_changed_wrr(struct rq *rq, struct task_struct *p, int oldprio) {
-	if(current->pid>5000) printk(KERN_DEBUG "prio_changed_wrr\n");
+//	if(current->pid>5000) printk(KERN_DEBUG "prio_changed_wrr\n");
 }
 
 static unsigned int get_rr_interval_wrr(struct rq *rq, struct task_struct *task) {
-	return 100;
+	return msecs_to_jiffies(10*task->wrr.weight);
 }
 
 static void switched_to_wrr(struct rq *rq, struct task_struct *p) {
 	struct sched_wrr_entity *wrr_entity = &p->wrr;
-	if(current->pid>5000) printk(KERN_DEBUG "switched_to_wrr\n");
+//	if(current->pid>5000) printk(KERN_DEBUG "switched_to_wrr\n");
 	wrr_entity -> task = p;
 
 	wrr_entity -> weight = 10;
@@ -225,30 +269,29 @@ static void switched_to_wrr(struct rq *rq, struct task_struct *p) {
 
 const struct sched_class wrr_sched_class = {
 	.next			= &fair_sched_class,
-	.enqueue_task		= enqueue_task_wrr,	//ok
-	.dequeue_task		= dequeue_task_wrr,	//ok
-	.yield_task		= yield_task_wrr,	//ok
+	.enqueue_task		= enqueue_task_wrr,
+	.dequeue_task		= dequeue_task_wrr,
+	.yield_task		= yield_task_wrr,	
 
-	.check_preempt_curr	= check_preempt_curr_wrr,	//ok
+	.check_preempt_curr	= check_preempt_curr_wrr,
 
-	.pick_next_task		= pick_next_task_wrr,	//ok
-	.put_prev_task		= put_prev_task_wrr,	//ok
+	.pick_next_task		= pick_next_task_wrr,	
+	.put_prev_task		= put_prev_task_wrr,
 
 #ifdef CONFIG_SMP
 	.select_task_rq		= select_task_rq_wrr,	//ok ->need further implementation with weight
 
 	//.set_cpus_allowed       = set_cpus_allowed_wrr,
-	.rq_online              = rq_online_wrr,	//essential
-	.rq_offline             = rq_offline_wrr,	//essential
+	.rq_online              = rq_online_wrr,
+	.rq_offline             = rq_offline_wrr,
 	//.pre_schedule		= pre_schedule_wrr,
 	//.post_schedule		= post_schedule_wrr,
 	//.task_woken		= task_woken_wrr,
-	.switched_from		= switched_from_wrr,	//essential
+	.switched_from		= switched_from_wrr,
 #endif
 
-	.set_curr_task          = set_curr_task_wrr,	//ok ->need further implementation with weight
-	.task_tick		= task_tick_wrr, //ok ->need further implementation with weight
-
+	.set_curr_task          = set_curr_task_wrr,
+	.task_tick		= task_tick_wrr,
 
 	.get_rr_interval	= get_rr_interval_wrr,
 
@@ -373,3 +416,12 @@ static struct task_struct * find_task_to_move(struct rq *this_rq, int min_load, 
 
 	return p;
 }
+
+#ifdef CONFIG_SCHED_DEBUG
+extern void print_wrr_rq(struct seq_file *m, int cpu, struct wrr_rq *wrr_rq);
+
+void print_wrr_stats(struct seq_file *m, int cpu){
+ 		struct rq* rq = cpu_rq(cpu);
+		print_wrr_rq(m,cpu, &rq->wrr);
+ }
+#endif /*CONFIG_SCHED_DEBUG */

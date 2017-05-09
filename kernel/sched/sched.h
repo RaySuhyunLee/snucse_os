@@ -324,6 +324,7 @@ struct cfs_rq {
 struct wrr_rq {
 	struct load_weight load;
 	unsigned int wrr_nr_running, h_nr_running;
+	int total_weight;
 
 	struct list_head queue;
 
@@ -1364,6 +1365,7 @@ extern struct sched_entity *__pick_first_entity(struct cfs_rq *cfs_rq);
 extern struct sched_entity *__pick_last_entity(struct cfs_rq *cfs_rq);
 extern void print_cfs_stats(struct seq_file *m, int cpu);
 extern void print_rt_stats(struct seq_file *m, int cpu);
+extern void print_wrr_stats(struct seq_file *m, int cpu);
 
 extern void init_cfs_rq(struct cfs_rq *cfs_rq);
 extern void init_rt_rq(struct rt_rq *rt_rq, struct rq *rq);
