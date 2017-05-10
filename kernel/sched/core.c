@@ -1526,7 +1526,7 @@ try_to_wake_up(struct task_struct *p, unsigned int state, int wake_flags)
 	if (task_cpu(p) != cpu) {
 		wake_flags |= WF_MIGRATED;
 		set_task_cpu(p, cpu);
-		if(p->pid >4500 && p->sched_class == &wrr_sched_class) printk(KERN_DEBUG "Wake up new task %d : %d\n",p->pid, task_cpu(p));
+		//if(p->pid >4500 && p->sched_class == &wrr_sched_class) printk(KERN_DEBUG "Wake up new task %d : %d\n",p->pid, task_cpu(p));
 	}
 #endif /* CONFIG_SMP */
 
@@ -4950,6 +4950,17 @@ fail:
 	raw_spin_unlock(&p->pi_lock);
 	return ret;
 }
+
+/*
+ * This is to make wrr load balancing easier.
+ * I know this is not a best practice,
+ * but I can't design migration better than original __migrate_task().
+ */
+int wrr_migrate_task(struct task_struct *p, int src_cpu, int dest_cpu) {
+	return __migrate_task(p, src_cpu, dest_cpu);
+}
+
+
 
 /*
  * migration_cpu_stop - this will be executed by a highprio stopper thread

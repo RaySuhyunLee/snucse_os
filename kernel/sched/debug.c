@@ -256,7 +256,6 @@ void print_wrr_rq(struct seq_file *m, int cpu, struct wrr_rq* wrr_rq) {
 	P(wrr_nr_running);
 	struct sched_wrr_entity* wrr_se;
 	struct task_struct *task;
-	printk(KERN_DEBUG "after wrr_nr_running");
 	
 #define PE(x) \
 	SEQ_printf(m, "  .%-30s: %Ld\n", #x, (long long)(wrr_se->x))
@@ -331,17 +330,17 @@ do {									\
 	P(nr_running);
 	SEQ_printf(m, "  .%-30s: %lu\n", "load",
 		   rq->load.weight);
-	P(nr_switches);
-	P(nr_load_updates);
-	P(nr_uninterruptible);
-	PN(next_balance);
+//	P(nr_switches);
+//	P(nr_load_updates);
+//	P(nr_uninterruptible);
+//	PN(next_balance);
 	P(curr->pid);
-	PN(clock);
-	P(cpu_load[0]);
-	P(cpu_load[1]);
-	P(cpu_load[2]);
-	P(cpu_load[3]);
-	P(cpu_load[4]);
+//	PN(clock);
+//	P(cpu_load[0]);
+//	P(cpu_load[1]);
+//	P(cpu_load[2]);
+//	P(cpu_load[3]);
+//	P(cpu_load[4]);
 #undef P
 #undef PN
 
@@ -349,10 +348,10 @@ do {									\
 #define P(n) SEQ_printf(m, "  .%-30s: %d\n", #n, rq->n);
 #define P64(n) SEQ_printf(m, "  .%-30s: %Ld\n", #n, rq->n);
 
-	P(yld_count);
+//	P(yld_count);
 
-	P(sched_count);
-	P(sched_goidle);
+//	P(sched_count);
+//	P(sched_goidle);
 #ifdef CONFIG_SMP
 //	P64(avg_idle);
 #endif
@@ -366,7 +365,7 @@ do {									\
 	spin_lock_irqsave(&sched_debug_lock, flags);
 //	print_cfs_stats(m, cpu);
 //	print_rt_stats(m, cpu);
-	print_wrr_stats(m,cpu);
+//	print_wrr_stats(m,cpu);
 	rcu_read_lock();
 	print_rq(m, rq, cpu);
 	rcu_read_unlock();
