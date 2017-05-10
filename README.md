@@ -72,6 +72,7 @@ If we refer to sched_rt_class and sched_fair_class we can find the needed functi
 
 
 ## 3. Improvements
+Not every tasks are independent, there are tasks which have certain relations. We can group threads that share the same memory space as thread group. It would be better to allocate these tasks into one CPU to improve performance. 
 
 ## Lessons Learned
 * Most build errors are your eye problems. Read error messages carefully!
