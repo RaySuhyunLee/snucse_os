@@ -172,7 +172,7 @@ static void put_prev_task_wrr(struct rq *rq, struct task_struct *prev) {
 
 #ifdef CONFIG_SMP
 	static int select_task_rq_wrr(struct task_struct *p, int sd_flag, int flag) {
-		if(p->nr_cpus_allowed ==1 || sd_flag != SD_BALANCE_FORK) return task_cpu(p);
+	//	if(p->nr_cpus_allowed ==1 || sd_flag != SD_BALANCE_FORK) return task_cpu(p);
 
 		//static int cpu_i = 0;
 		int old_cpu = task_cpu(p);
@@ -314,11 +314,11 @@ static void wrr_load_balance(void) {
 	int loads[NR_CPUS];
 	int active_cores = 0;	// number of active cores
 	
-	//preempt_disable();
+	preempt_disable();
 	rcu_read_lock();
 
 	// calculate load of each cpu
-	for_each_possible_cpu(i) {
+	for_each_cpu(i, cpu_active_mask) {
 		rq = cpu_rq(i);
 
 		wrr_rq = &rq->wrr;
@@ -326,7 +326,7 @@ static void wrr_load_balance(void) {
 		if (rq->curr)
 			printk(KERN_ERR "task(%d) running\n", rq->curr->pid);
 		
-		active_cores += wrr_rq->wrr_nr_running > 0;
+		active_cores ++;
 		
 		loads[i] = get_load(wrr_rq);
 
@@ -354,21 +354,6 @@ static void wrr_load_balance(void) {
 				max_index, cpu_rq(max_index)->wrr.wrr_nr_running, p->pid, p->wrr.weight,
 				min_index, cpu_rq(min_index)->wrr.wrr_nr_running);
 
-		// perform actual task migration
-		/*
-		p->on_rq = 1;
-		update_rq_clock(cpu_rq(max_index));
-		sched_info_dequeued(p);
-		dequeue_task_wrr(cpu_rq(max_index), p, 0);
-		
-		set_task_cpu(p, min_index);
-
-		update_rq_clock(cpu_rq(min_index));
-		sched_info_queued(p);
-		enqueue_task_wrr(cpu_rq(min_index), p, 0);
-		wrr_rq = &cpu_rq(min_index)->wrr;
-		p->on_rq = 0;*/
-
 		wrr_migrate_task(p, max_index, min_index);
 
 		printk(KERN_ERR "After: cpu %d(%d) -> task pid %d, weight %d -> cpu %d(%d)\n", 
@@ -376,7 +361,7 @@ static void wrr_load_balance(void) {
 				min_index, cpu_rq(min_index)->wrr.wrr_nr_running);
 	}
 
-	//preempt_enable();
+	preempt_enable();
 }
 
 static int get_load(struct wrr_rq * wrr_rq) {
