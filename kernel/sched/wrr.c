@@ -180,12 +180,13 @@ static void put_prev_task_wrr(struct rq *rq, struct task_struct *prev) {
 		if(p->nr_cpus_allowed ==1 || (sd_flag != SD_BALANCE_FORK)) return old_cpu;
 		
 		//rcu_read_lock();
-		
+		#ifdef CONFIG_IMPROVEMENT
 		if(unlikely(p->tgid != p-> pid)) { // if process has other thread group heads it would be share cache.
 		 	group_leader = find_task_by_vpid(p->tgid);
 		 	if(group_leader != NULL) 
 				return task_cpu(group_leader); //allocate same CPU. 
 		}
+		#endif /* CONFIG_IMPROVEMENT */
 
 		rq = cpu_rq(old_cpu);
 		min_weight = rq -> wrr.total_weight;
