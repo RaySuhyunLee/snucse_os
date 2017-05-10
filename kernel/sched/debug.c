@@ -131,7 +131,7 @@ print_task(struct seq_file *m, struct rq *rq, struct task_struct *p)
 		SEQ_printf(m, " ");
 	
 
-	SEQ_printf(m, "%d %d %15s %5d %9Ld.%06ld %9Ld %5d ",print_class, p->policy,
+	SEQ_printf(m, "%9d %9d %15s %5d %9Ld.%06ld %9Ld %5d ",print_class, p->policy,
 		p->comm, p->pid,
 		SPLIT_NS(p->se.vruntime),
 		(long long)(p->nvcsw + p->nivcsw),
@@ -248,33 +248,63 @@ void print_cfs_rq(struct seq_file *m, int cpu, struct cfs_rq *cfs_rq)
 }
 
 void print_wrr_rq(struct seq_file *m, int cpu, struct wrr_rq* wrr_rq) {
-	SEQ_printf(m, "\nwrr_rq[%d]:\n",cpu);
+//	SEQ_printf(m, "\nwrr_rq[%d]:\n",cpu);
 
 #define P(x) \
 	SEQ_printf(m, "  .%-30s: %Ld\n", #x, (long long)(wrr_rq->x))
 
-	P(wrr_nr_running);
+//	P(wrr_nr_running);
 	struct sched_wrr_entity* wrr_se;
-	struct task_struct *task;
+
+	struct task_struct *p;
 	
+	int print_class = 0;
+
 #define PE(x) \
 	SEQ_printf(m, "  .%-30s: %Ld\n", #x, (long long)(wrr_se->x))
 #define PEN(x) \
 	SEQ_printf(m, "  .%-30s: %Ld\n", #x, (long long) jiffies_to_msecs(wrr_se->x))
+	if(wrr_rq->wrr_nr_running != 0) {
+		SEQ_printf(m,
+			"\nrunnable tasks:\n"
+			"sched_class   policy	   CMD    	  PID	  weight   time_slice"
+			"    exec-runtime         sum-exec        sum-sleep\n"
+			"-------------------------------------------------------------------"
+			"----------------------------------------------------\n");
+	}
+
 	list_for_each_entry_rcu(wrr_se, &wrr_rq->queue, run_list) {
 	 	if(wrr_se == NULL) {
 	  		SEQ_printf(m ,"  sched_wrr_entity is NULL in queue\n");
 			return 1;
 	 	}
-		task = container_of(wrr_se, struct task_struct, wrr);
-		if(task == NULL) SEQ_printf(m, "NULL\n");
-		else { SEQ_printf(m,"\nPID : %d NAME : %s\n", task->pid, task->comm);}
- 		PE(weight);
-		PEN(time_slice);
+		p = container_of(wrr_se, struct task_struct, wrr);
+		if( p== NULL) continue;
+
+		if(p->sched_class == &rt_sched_class) print_class = 1;
+		if(p->sched_class == &fair_sched_class) print_class = 0;
+		if(p->sched_class == &wrr_sched_class) print_class = 6;
+		
+		SEQ_printf(m, "%9d %9d %15s %10d %10Ld %10Ld",print_class, p->policy, p->comm, p->pid, 
+		  (long long)wrr_se->weight, (long long)jiffies_to_msecs(wrr_se->time_slice) );
+#ifdef CONFIG_SCHEDSTATS
+		SEQ_printf(m, "%9Ld.%06ld %9Ld.%06ld %9Ld.%06ld",
+			SPLIT_NS(p->se.vruntime),
+			SPLIT_NS(p->se.sum_exec_runtime),
+			SPLIT_NS(p->se.statistics.sum_sleep_runtime));
+#else
+		SEQ_printf(m, "%15Ld %15Ld %15Ld.%06ld %15Ld.%06ld %15Ld.%06ld",
+			0LL, 0LL, 0LL, 0L, 0LL, 0L, 0LL, 0L);
+#endif
+		SEQ_printf(m, "\n");
+// 		PE(weight);
+//		PEN(time_slice);
 	}
 	//print the element of queue.
 #undef PN
 #undef P
+	SEQ_printf(m,"-------------------------------------------------------------------"
+			"----------------------------------------------------\n");
 }
 
 void print_rt_rq(struct seq_file *m, int cpu, struct rt_rq *rt_rq)
@@ -293,7 +323,6 @@ void print_rt_rq(struct seq_file *m, int cpu, struct rt_rq *rt_rq)
 	P(rt_throttled);
 	PN(rt_time);
 	PN(rt_runtime);
-
 #undef PN
 #undef P
 }
@@ -319,29 +348,37 @@ static void print_cpu(struct seq_file *m, int cpu)
 #define P(x)								\
 do {									\
 	if (sizeof(rq->x) == 4)						\
-		SEQ_printf(m, "  .%-30s: %ld\n", #x, (long)(rq->x));	\
+		SEQ_printf(m, "  .%-15s: %ld\t", #x, (long)(rq->x));	\
 	else								\
-		SEQ_printf(m, "  .%-30s: %Ld\n", #x, (long long)(rq->x));\
+		SEQ_printf(m, "  .%-15s: %Ld\t", #x, (long long)(rq->x)); \
 } while (0)
 
+#define PW(x) \
+	 SEQ_printf(m, "  .%-15s: %Ld\t", #x, (long long)(rq->wrr.x))
+
 #define PN(x) \
-	SEQ_printf(m, "  .%-30s: %Ld.%06ld\n", #x, SPLIT_NS(rq->x))
+	SEQ_printf(m, "  .%-15s: %Ld.%06ld\t", #x, SPLIT_NS(rq->x))
 
 	P(nr_running);
-	SEQ_printf(m, "  .%-30s: %lu\n", "load",
-		   rq->load.weight);
+
+	PW(wrr_nr_running);
+//	SEQ_printf(m, "  .%-30s: %lu\n", "load", rq->load.weight);
 //	P(nr_switches);
 //	P(nr_load_updates);
 //	P(nr_uninterruptible);
 //	PN(next_balance);
 	P(curr->pid);
-//	PN(clock);
+
+	PN(clock);
+	SEQ_printf(m,"\n");
+
 //	P(cpu_load[0]);
 //	P(cpu_load[1]);
 //	P(cpu_load[2]);
 //	P(cpu_load[3]);
 //	P(cpu_load[4]);
 #undef P
+#undef PW
 #undef PN
 
 #ifdef CONFIG_SCHEDSTATS
@@ -367,7 +404,7 @@ do {									\
 //	print_rt_stats(m, cpu);
 //	print_wrr_stats(m,cpu);
 	rcu_read_lock();
-	print_rq(m, rq, cpu);
+//	print_rq(m, rq, cpu);
 	rcu_read_unlock();
 	spin_unlock_irqrestore(&sched_debug_lock, flags);
 	SEQ_printf(m, "\n");
@@ -416,11 +453,11 @@ static void sched_debug_header(struct seq_file *m)
 	SEQ_printf(m, "  .%-40s: %Ld\n", #x, (long long)(x))
 #define PN(x) \
 	SEQ_printf(m, "  .%-40s: %Ld.%06ld\n", #x, SPLIT_NS(x))
-	PN(sysctl_sched_latency);
+/*	PN(sysctl_sched_latency);
 	PN(sysctl_sched_min_granularity);
 	PN(sysctl_sched_wakeup_granularity);
 	P(sysctl_sched_child_runs_first);
-	P(sysctl_sched_features);
+	P(sysctl_sched_features); */
 #undef PN
 #undef P
 

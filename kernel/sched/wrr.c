@@ -172,7 +172,7 @@ static void put_prev_task_wrr(struct rq *rq, struct task_struct *prev) {
 
 #ifdef CONFIG_SMP
 	static int select_task_rq_wrr(struct task_struct *p, int sd_flag, int flag) {
-	//	if(p->nr_cpus_allowed ==1 || sd_flag != SD_BALANCE_FORK) return task_cpu(p);
+
 
 		//static int cpu_i = 0;
 		int old_cpu = task_cpu(p);
@@ -180,13 +180,25 @@ static void put_prev_task_wrr(struct rq *rq, struct task_struct *prev) {
 		int iter_cpu; 
 		struct rq *rq;
 		int min_weight = 0;
+		struct task_struct* group_leader;
 		
+		if(p->nr_cpus_allowed ==1 || (sd_flag != SD_BALANCE_FORK)) return old_cpu;
+				//rcu_read_lock();
+		#ifdef CONFIG_IMPROVEMENT
+		if(unlikely(p->tgid != p-> pid)) { // if process has other thread group heads it would be share cache.
+		 	group_leader = find_task_by_vpid(p->tgid);
+		 	if(group_leader != NULL) 
+				return task_cpu(group_leader); //allocate same CPU. 
+		}
+		#endif /* CONFIG_IMPROVEMENT */
+
 		rcu_read_lock();
 	
 		rq = cpu_rq(old_cpu);
 		min_weight = rq -> wrr.total_weight;		
 
 		preempt_disable();
+
 		for_each_cpu(iter_cpu, cpu_online_mask){
 			rq = cpu_rq(iter_cpu);
 			
