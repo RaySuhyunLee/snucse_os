@@ -100,6 +100,8 @@ struct rt_bandwidth {
 	struct hrtimer		rt_period_timer;
 };
 
+extern int wrr_migrate_task(struct task_struct *p, int src_cpu, int dest_cpu);
+
 extern struct mutex sched_domains_mutex;
 
 #ifdef CONFIG_CGROUP_SCHED
@@ -334,7 +336,7 @@ struct wrr_rq {
 	u64 min_vruntime_copy;
 #endif
 	/*
-	 * 'curr' points to currently running entity on this cfs_rq.
+	 * 'curr' points to currently running entity on this wrr_rq.
 	 * It is set to NULL otherwise (i.e when none are currently running).
 	 */
 	struct sched_entity *curr, *next, *last, *skip;
@@ -1075,6 +1077,7 @@ extern const struct sched_class wrr_sched_class;
 extern void update_group_power(struct sched_domain *sd, int cpu);
 
 extern void trigger_load_balance(struct rq *rq, int cpu);
+extern void wrr_trigger_load_balance(struct rq *rq, int cpu);
 extern void idle_balance(int this_cpu, struct rq *this_rq);
 
 /*

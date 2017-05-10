@@ -255,6 +255,7 @@ void print_wrr_rq(struct seq_file *m, int cpu, struct wrr_rq* wrr_rq) {
 
 //	P(wrr_nr_running);
 	struct sched_wrr_entity* wrr_se;
+
 	struct task_struct *p;
 	
 	int print_class = 0;
@@ -359,6 +360,7 @@ do {									\
 	SEQ_printf(m, "  .%-15s: %Ld.%06ld\t", #x, SPLIT_NS(rq->x))
 
 	P(nr_running);
+
 	PW(wrr_nr_running);
 //	SEQ_printf(m, "  .%-30s: %lu\n", "load", rq->load.weight);
 //	P(nr_switches);
@@ -366,8 +368,10 @@ do {									\
 //	P(nr_uninterruptible);
 //	PN(next_balance);
 	P(curr->pid);
+
 	PN(clock);
 	SEQ_printf(m,"\n");
+
 //	P(cpu_load[0]);
 //	P(cpu_load[1]);
 //	P(cpu_load[2]);
@@ -398,7 +402,7 @@ do {									\
 	spin_lock_irqsave(&sched_debug_lock, flags);
 //	print_cfs_stats(m, cpu);
 //	print_rt_stats(m, cpu);
-	print_wrr_stats(m,cpu);
+//	print_wrr_stats(m,cpu);
 	rcu_read_lock();
 //	print_rq(m, rq, cpu);
 	rcu_read_unlock();
