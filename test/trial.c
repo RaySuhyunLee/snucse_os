@@ -4,22 +4,24 @@
 #include <sys/types.h>
 #include <errno.h>
 #include <signal.h>
+#include <time.h>
 
-int main (int argc, char* argv[]) {
-	int tmp;
-	int i;
-	char* name = argv[1];
-	int upper_bound  = atoi(argv[2]);
-	int weight = atoi(argv[3]);
-	int c = 1;
+
+int main (void) {// (int argc, char* argv[]) {
+ 	clock_t before;
+	before = clock();
+	double result;
+	long long tmp, i;
+	long long upper_bound = 10000* 10;    // = atoi(argv[2]);
+	long long c = 1;
 	while (c <= upper_bound) {
 	
-		printf("trial-%s: %d = ", name,c); 
+		printf("trial : %lld = ", c); 
 		tmp = c;
 
 		for(i=2;i<=tmp;i++) {
 			if(tmp % i == 0) {
-				printf("%d",i);
+				printf("%lld",i);
 				tmp = tmp / i;
 				if(tmp % i == 0) printf("* ");
 				else if(tmp % i != 0) {
@@ -32,6 +34,8 @@ int main (int argc, char* argv[]) {
 		c++;
 		printf("\n");
 	}
-		
+	result = (double)(clock()-before)/CLOCKS_PER_SEC;
+
+	printf("Running Time : %5.2f\n", result);
 	return 0;
 }
