@@ -72,6 +72,9 @@ If we refer to sched_rt_class and sched_fair_class we can find the needed functi
 ### Cache Coherence
   Not every tasks are independent, there are tasks which have certain relations. If two tasks have same tgid(thread group id) then, it may have same cache. That's why we compare task's pid and its tgid. if it is different, put task to rq(CPU) that have a task of which pid is same as task(target)'s tgid. It would be improving performance because of cache coherence. To be specific, when the task_struct forked, it call `select_task_rq_wrr()` in `wake_up_new_task()` function. So we compare there.
 
+## Test cases
+1.
+
 ## Lessons Learned
 * Most build errors are due to your eyes. Read error messages carefully!
 * Reading 20k lines of code is nothing. Implementing or fixing it is A THING.
