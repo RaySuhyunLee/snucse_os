@@ -4,22 +4,27 @@
 #include <sys/types.h>
 #include <errno.h>
 #include <signal.h>
+#include <time.h>
 
-int main (int argc, char* argv[]) {
-	int tmp;
-	int i;
-	char* name = argv[1];
-	int upper_bound  = atoi(argv[2]);
-	int weight = atoi(argv[3]);
-	int c = 1;
+
+int main (void) {// (int argc, char* argv[]) {
+	struct timespec before, after;
+	clock_gettime(CLOCK_MONOTONIC, &before);
+	long result;
+	long long tmp, i;
+	long long upper_bound = 10000* 3;    // = atoi(argv[2]);
+	long long c = 1;
+	char buf[40];
+	FILE *out_file;
+	pid_t pid = getpid();
 	while (c <= upper_bound) {
 	
-		printf("trial-%s: %d = ", name,c); 
+		printf("trial %ld : %lld = ",(long)pid, c); 
 		tmp = c;
 
 		for(i=2;i<=tmp;i++) {
 			if(tmp % i == 0) {
-				printf("%d",i);
+				printf("%lld",i);
 				tmp = tmp / i;
 				if(tmp % i == 0) printf("* ");
 				else if(tmp % i != 0) {
@@ -32,6 +37,13 @@ int main (int argc, char* argv[]) {
 		c++;
 		printf("\n");
 	}
-		
+	clock_gettime(CLOCK_MONOTONIC, &after);
+	result = after.tv_sec - before.tv_sec;
+	//result = (double)(clock()-before)/CLOCKS_PER_SEC;
+
+	sprintf(buf, "/root/result/pid_%d.result", getpid());
+	out_file = fopen(buf, "w");
+	fprintf(out_file, "Running Time : %ld s\n", result);
+	fclose(out_file);
 	return 0;
 }
