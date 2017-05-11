@@ -359,17 +359,17 @@ do {									\
 #define PN(x) \
 	SEQ_printf(m, "  .%-15s: %Ld.%06ld\t", #x, SPLIT_NS(rq->x))
 
-	P(nr_running);
+//	P(nr_running);
 
-	PW(wrr_nr_running);
+//	PW(wrr_nr_running);
 //	SEQ_printf(m, "  .%-30s: %lu\n", "load", rq->load.weight);
 //	P(nr_switches);
 //	P(nr_load_updates);
 //	P(nr_uninterruptible);
 //	PN(next_balance);
-	P(curr->pid);
+//	P(curr->pid);
 
-	PN(clock);
+//	PN(clock);
 	SEQ_printf(m,"\n");
 
 //	P(cpu_load[0]);
