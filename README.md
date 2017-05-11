@@ -79,13 +79,12 @@ If we refer to sched_rt_class and sched_fair_class we can find the needed functi
 ## 2. Investigation
 
 
-## 3. Improvements
+## 3. Improve the WRR scheduler (10 pts.)
 ### Settings
- We make a new flag (CONFIG_IMPROVEMENT) in /arch/arm/configs/artik10_defconfig. Our improvement is in the CONFIG_IMPROVEMENT condition.
- 
+ We make a new flag (CONFIG_IMPROVEMENT) in /arch/arm/configs/artik10_defconfig. Our improvement is in the CONFIG_IMPROVEMENT condition. 
 
 ### Fork
-Not every tasks are independent, there are tasks which have certain relations. We can group threads that share the same memory space as thread group. It would be better to allocate these tasks into one CPU to improve performance. To be specific, when the task_struct forked, it call `select_task_rq_wrr()` in `wake_up_new_task()` function. So we compare 
+  Not every tasks are independent, there are tasks which have certain relations. If two tasks have same tgid(thread group id) then, it may have same cache. That's why we compare task's pid and its tgid. if it is different, put task to rq(CPU) that have a task of which pid is same as task(target)'s tgid. It would be improving performance because of cache coherence. To be specific, when the task_struct forked, it call `select_task_rq_wrr()` in `wake_up_new_task()` function. So we compare there.
 
 ## Lessons Learned
 * Most build errors are due to your eyes. Read error messages carefully!
