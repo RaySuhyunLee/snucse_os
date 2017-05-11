@@ -173,7 +173,7 @@ static void put_prev_task_wrr(struct rq *rq, struct task_struct *prev) {
 #ifdef CONFIG_SMP
 	static int select_task_rq_wrr(struct task_struct *p, int sd_flag, int flag) {
 	//	if(p->nr_cpus_allowed ==1 || sd_flag != SD_BALANCE_FORK) return task_cpu(p);
-
+		if(sd_flag == SD_BALANCE_EXEC) return task_cpu(p);
 		//static int cpu_i = 0;
 		int old_cpu = task_cpu(p);
 		int new_cpu = old_cpu;
