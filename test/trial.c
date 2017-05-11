@@ -12,7 +12,7 @@ int main (int argc, char* argv[]) {
 	clock_gettime(CLOCK_MONOTONIC, &before);
 	long result;
 	long long tmp, i;
-	long long upper_bound = 10000* 3;    // = atoi(argv[2]);
+	long long upper_bound = 10000* 7;    // = atoi(argv[2]);
 	long long c = 1;
 	char buf[100];
 	FILE *out_file;
@@ -37,27 +37,29 @@ int main (int argc, char* argv[]) {
 	pid_t pid = getpid();
 	while (c <= upper_bound) {
 	
-		printf("trial %ld : %lld = ",(long)pid, c); 
+		//printf("trial %ld : %lld = ",(long)pid, c); 
 		tmp = c;
 
 		for(i=2;i<=tmp;i++) {
 			if(tmp % i == 0) {
-				printf("%lld",i);
-				tmp = tmp / i;
-				if(tmp % i == 0) printf("* ");
+				//printf("%lld",i);
+				tmp = tmp / i; /*
+				if(tmp % i == 0) { //printf("* ");
+				}
 				else if(tmp % i != 0) {
 					if(tmp > i)
-					printf(" * ");
-				}
+					//printf(" * ");
+				}*/
 				i = 1;
 			}
 		}
 		c++;
-		printf("\n");
+		//printf("\n");
 	}
 	clock_gettime(CLOCK_MONOTONIC, &after);
 	result = after.tv_sec - before.tv_sec;
 
+	printf("weight: %d, time: %ld s\n", weight, result);
 	sprintf(buf, "/root/result/%d.result", getpid());
 	out_file = fopen(buf, "w");
 	fprintf(out_file, "weight: %d, time: %ld s\n", weight, result);
