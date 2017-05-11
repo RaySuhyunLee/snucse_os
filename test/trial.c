@@ -8,12 +8,14 @@
 
 
 int main (void) {// (int argc, char* argv[]) {
- 	clock_t before;
-	before = clock();
-	double result;
+	struct timespec before, after;
+	clock_gettime(CLOCK_MONOTONIC, &before);
+	long result;
 	long long tmp, i;
-	long long upper_bound = 10000* 10;    // = atoi(argv[2]);
+	long long upper_bound = 10000* 3;    // = atoi(argv[2]);
 	long long c = 1;
+	char buf[40];
+	FILE *out_file;
 	while (c <= upper_bound) {
 	
 		printf("trial : %lld = ", c); 
@@ -34,8 +36,13 @@ int main (void) {// (int argc, char* argv[]) {
 		c++;
 		printf("\n");
 	}
-	result = (double)(clock()-before)/CLOCKS_PER_SEC;
+	clock_gettime(CLOCK_MONOTONIC, &after);
+	result = after.tv_sec - before.tv_sec;
+	//result = (double)(clock()-before)/CLOCKS_PER_SEC;
 
-	printf("Running Time : %5.2f\n", result);
+	sprintf(buf, "/root/result/pid_%d.result", getpid());
+	out_file = fopen(buf, "w");
+	fprintf(out_file, "Running Time : %ld s\n", result);
+	fclose(out_file);
 	return 0;
 }
