@@ -2,11 +2,18 @@
 
 ## 1. Registering WRR in core.c
 Initial scheduler has two policies, Real Time Scheduler and Fair Scheduler(cfs). We inserted a new scheduler: Weighted Round Robin.
-Our scheduler basically follows T.A's policy.
+We modified following functions:
+```c
+void sched_fork(struct task_struct *)
+struct task_struct * pick_next_task(struct rq *)
+void rt_mutext_setprio(struct task_struct *, int)
+void __setscheduler(struct rq *, struct task_struct *, int, int)
+void __init sched_init(void)
+int cpu_cgroup_can_attach(struct cgroup *, struct cgroup_taskset *)
+```
 
 ## High-Level Design & Implementation
-currently developing...
-
+Our scheduler basically follows T.A's policy.
 
 ### About weight
 we initally set weight as 10.
@@ -80,8 +87,9 @@ If we refer to sched_rt_class and sched_fair_class we can find the needed functi
 Not every tasks are independent, there are tasks which have certain relations. We can group threads that share the same memory space as thread group. It would be better to allocate these tasks into one CPU to improve performance. To be specific, when the task_struct forked, it call select_task_rq_wrr in `wake_up_new_task` function. So we compare 
 
 ## Lessons Learned
-* Most build errors are your eye problems. Read error messages carefully!
+* Most build errors are due to your eyes. Read error messages carefully!
 * Reading 20k lines of code is nothing. Implementing or fixing it is A THING.
 * You can (kind of) program Object Oriented in C. It's terribly gourgeous.
-* Pair programming can be a powerful solution when nobody knows what to do.
-* There is no "End" in kernel development. In other words, we won't go home in constant time.
+* Pair programming can be a powerful solution when nobody exactly knows what to do.
+* There is no "End" in kernel development. Thus, we can't go home in constant time.
+* The Feynman algorithm actually works.
