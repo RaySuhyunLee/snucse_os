@@ -16,9 +16,10 @@ int main (void) {// (int argc, char* argv[]) {
 	long long c = 1;
 	char buf[40];
 	FILE *out_file;
+	pid_t pid = getpid();
 	while (c <= upper_bound) {
 	
-		printf("trial : %lld = ", c); 
+		printf("trial %ld : %lld = ",(long)pid, c); 
 		tmp = c;
 
 		for(i=2;i<=tmp;i++) {
