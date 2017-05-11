@@ -4,12 +4,12 @@
 Initial scheduler has two policies, Real Time Scheduler and Fair Scheduler(cfs). We inserted a new scheduler: Weighted Round Robin.
 We modified following functions:
 ```c
-void sched_fork(struct task_struct *)
-struct task_struct * pick_next_task(struct rq *)
-void rt_mutext_setprio(struct task_struct *, int)
-void __setscheduler(struct rq *, struct task_struct *, int, int)
-void __init sched_init(void)
-int cpu_cgroup_can_attach(struct cgroup *, struct cgroup_taskset *)
+void sched_fork(struct task_struct *);
+struct task_struct * pick_next_task(struct rq *);
+void rt_mutext_setprio(struct task_struct *, int);
+void __setscheduler(struct rq *, struct task_struct *, int, int);
+void __init sched_init(void);
+int cpu_cgroup_can_attach(struct cgroup *, struct cgroup_taskset *);
 ```
 
 ## High-Level Design & Implementation
@@ -44,6 +44,7 @@ wrr_rq is an inheritor of sched_rq and has `wrr_nr_running` which is the number 
 
 sched_wrr_class is core of our WRR scheduler. it is inheritor of sched_class. It inherits the needed functions for a sched class.
 If we refer to sched_rt_class and sched_fair_class we can find the needed functions for wrr_sched_class. In fact, we do not need to implement all of them. The functions that need implement are,
+
     .enqueue_task = enqueue_task_wrr
 
     .dequeue_task = dequeue_task_wrr
@@ -84,7 +85,7 @@ If we refer to sched_rt_class and sched_fair_class we can find the needed functi
  
 
 ### Fork
-Not every tasks are independent, there are tasks which have certain relations. We can group threads that share the same memory space as thread group. It would be better to allocate these tasks into one CPU to improve performance. To be specific, when the task_struct forked, it call select_task_rq_wrr in `wake_up_new_task` function. So we compare 
+Not every tasks are independent, there are tasks which have certain relations. We can group threads that share the same memory space as thread group. It would be better to allocate these tasks into one CPU to improve performance. To be specific, when the task_struct forked, it call `select_task_rq_wrr()` in `wake_up_new_task()` function. So we compare 
 
 ## Lessons Learned
 * Most build errors are due to your eyes. Read error messages carefully!
