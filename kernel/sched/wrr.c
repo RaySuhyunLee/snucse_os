@@ -172,8 +172,7 @@ static void put_prev_task_wrr(struct rq *rq, struct task_struct *prev) {
 
 #ifdef CONFIG_SMP
 	static int select_task_rq_wrr(struct task_struct *p, int sd_flag, int flag) {
-	//	if(p->nr_cpus_allowed ==1 || sd_flag != SD_BALANCE_FORK) return task_cpu(p);
-		if(sd_flag == SD_BALANCE_EXEC) return task_cpu(p);
+		//if(p->nr_cpus_allowed ==1 || sd_flag != SD_BALANCE_FORK) return task_cpu(p);
 		//static int cpu_i = 0;
 		int old_cpu = task_cpu(p);
 		int new_cpu = old_cpu;
@@ -209,6 +208,8 @@ static void set_curr_task_wrr(struct rq *rq) {
 }
 
 static void task_tick_wrr(struct rq *rq, struct task_struct *p, int queued){
+	
+	int new_cpu;
 
 	update_curr_wrr(rq);
 	
@@ -217,8 +218,9 @@ static void task_tick_wrr(struct rq *rq, struct task_struct *p, int queued){
 	if(--p->wrr.time_slice) return;
 	wrr_set_time_slice(&p->wrr);
 	
-
-	requeue_task_wrr(rq,p);
+	new_cpu = select_task_rq_wrr(p, 0, 0);
+	if(new_cpu == task_cpu(p)) requeue_task_wrr(rq,p);
+	else enqueue_task_wrr(cpu_rq(new_cpu), p, 0);
 	set_tsk_need_resched(p);
 	return;
 }
