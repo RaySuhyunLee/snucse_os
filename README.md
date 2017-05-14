@@ -68,7 +68,14 @@ It is about our initial policy (TA's policy) is good~
 1. Test about fork
 
 2. Test about Weight change.
+### Test cases
+### Description of test code
+1. Run Trian and Division code weights 1 to 20 Sequentially
+2. Run 30 Trian and Division code simultaneously
+3. mulithread Trial and Division Test
 
+
+1.
 #TODO Important
 You should provide a complete set of results that show all your tests. If there are any results that do not yield execution time proportional to weights, explain why. Your results and any explanations should be put in the README.md file in the project branch of your team's repository. Your plot should be named plot.pdf and should be put next to the README.md file.
 
@@ -79,20 +86,10 @@ You should provide a complete set of results that show all your tests. If there 
 
 ### Cache Coherence
   Not every tasks are independent, there are tasks which have certain relations. If two tasks have same tgid(thread group id) then, it may have same cache. That's why we compare task's pid and its tgid. if it is different, put task to rq(CPU) that have a task of which pid is same as task(target)'s tgid. It would be improving performance because of cache coherence. To be specific, when the task_struct forked, it call `select_task_rq_wrr()` in `wake_up_new_task()` function. So we compare there.
-  #TODO Do we need to describe how to test here?
+
+#TODO Do we need to describe how to test here?
   
-
-## Test cases
-## Description of test code
-1. Run Trian and Division code weights 1 to 20 Sequentially
-2. Run 30 Trian and Division code simultaneously
-3. mulithread Trial and Division Test
-
-
-1.
-
-
-### Improvement (Cacche Coherence) Test
+### Experiments
  We have two test. First using Trial and Division code.
  1. Run 30 Trial and Division code simultaneously twice. Its average is as follows
  
@@ -105,10 +102,15 @@ You should provide a complete set of results that show all your tests. If there 
  
  [fig Test 2]
  
+Our improvement worked well. We assumed that it is because the result of cache cohrerence.
+First test is not use fork or thread_create, however our policy worked better. From this result, other background process make a lot of child process. 
+Sencond shows that how faster our policy. This test is directly influenced on our policy. Because it use `thread_create()` and wait child thread ends.
+
 
 
 
 ## Lessons Learned
+* Linux kernel is so optimizing that we cannot directly understand.
 * Most build errors are due to your eyes. Read error messages carefully!
 * Reading 20k lines of code is nothing. Implementing or fixing it is A THING.
 * You can (kind of) program Object Oriented in C. It's terribly gourgeous.
