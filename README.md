@@ -63,6 +63,14 @@ If we refer to sched_rt_class and sched_fair_class we can find the needed functi
 
 
 ## 2. Investigation
+It is about our initial policy (TA's policy) is good~
+
+1. Test about fork
+
+2. Test about Weight change.
+
+#TODO Important
+You should provide a complete set of results that show all your tests. If there are any results that do not yield execution time proportional to weights, explain why. Your results and any explanations should be put in the README.md file in the project branch of your team's repository. Your plot should be named plot.pdf and should be put next to the README.md file.
 
 
 ## 3. Improve the WRR scheduler (10 pts.)
@@ -71,9 +79,34 @@ If we refer to sched_rt_class and sched_fair_class we can find the needed functi
 
 ### Cache Coherence
   Not every tasks are independent, there are tasks which have certain relations. If two tasks have same tgid(thread group id) then, it may have same cache. That's why we compare task's pid and its tgid. if it is different, put task to rq(CPU) that have a task of which pid is same as task(target)'s tgid. It would be improving performance because of cache coherence. To be specific, when the task_struct forked, it call `select_task_rq_wrr()` in `wake_up_new_task()` function. So we compare there.
+  #TODO Do we need to describe how to test here?
+  
 
 ## Test cases
+## Description of test code
+1. Run Trian and Division code weights 1 to 20 Sequentially
+2. Run 30 Trian and Division code simultaneously
+3. mulithread Trial and Division Test
+
+
 1.
+
+
+### Improvement (Cacche Coherence) Test
+ We have two test. First using Trial and Division code.
+ 1. Run 30 Trial and Division code simultaneously twice. Its average is as follows
+ 
+ 2. multithread Trial and Division code Three times
+ - it is better to prove our improvement is good. Because it is impact on the thread_create ()
+ JaeD HOW many?
+
+ The result is good~
+ [fig Test 1]
+ 
+ [fig Test 2]
+ 
+
+
 
 ## Lessons Learned
 * Most build errors are due to your eyes. Read error messages carefully!
