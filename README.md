@@ -61,6 +61,8 @@ If we refer to sched_rt_class and sched_fair_class we can find the needed functi
     .prio_changed = prio_changed_wrr
     .switched_to = switched_to_wrr
 
+### Lock implement for weight
+Use an rwlock for the lock. rwlocks are declared within the schedular entity of wrr(include/linux/sched.h) and are initialized once when the schedular class is initialized(kernel/sched/core.c). Locks are cloned for forked tasks. Through this we do not need to initialize the lock when we use it, we just can use it.
 
 ## 2. Investigation
 It is about our initial policy (TA's policy) is good~
@@ -68,12 +70,14 @@ It is about our initial policy (TA's policy) is good~
 1. Test about fork
 
 2. Test about Weight change.
-### Test cases
-### Description of test code
-1. Run Trian and Division code weights 1 to 20 Sequentially
-2. Run 30 Trian and Division code simultaneously
-3. mulithread Trial and Division Test
 
+### Test cases
+1. Run 20 background tasks with weights from 1 to 20
+2. Run Trial and Division code weights 1 to 20 Sequentially
+
+### Factors influencing result (need control over these factors for more trustworthy results)
+1. Temperature of the CPU of ARTIK
+2. The PID when our test case starts
 
 1.
 #TODO Important
@@ -91,12 +95,13 @@ You should provide a complete set of results that show all your tests. If there 
   
 ### Experiments
  We have two test. First using Trial and Division code.
- 1. Run 30 Trial and Division code simultaneously twice. Its average is as follows
- 
+ 1. Run 30 30k Trial and Division code simultaneously twice. Its average is as follows
+
  2. multithread Trial and Division code Three times
  - it is better to prove our improvement is good. Because it is impact on the thread_create ()
  JaeD HOW many?
-
+10 15 20 25  threaead #
+50k(upper bound)
  The result is good~
  [fig Test 1]
  
