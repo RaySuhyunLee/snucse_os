@@ -63,7 +63,7 @@ static void update_curr_wrr(struct rq *rq) {
 		      max(curr->se.statistics.exec_max, delta_exec));
 
 	curr->se.sum_exec_runtime += delta_exec;
-//	account_group_exec_runtime(curr, delta_exec);
+	account_group_exec_runtime(curr, delta_exec);
 
 	curr->se.exec_start = rq->clock_task;
 	cpuacct_charge(curr, delta_exec);
@@ -180,17 +180,19 @@ static int select_task_rq_wrr(struct task_struct *p, int sd_flag, int flag) {
 	struct rq *rq;
 	int min_weight = 0;
 	struct task_struct* group_leader;
+
 	//do we need to p->nr_cpus_allowed == 1 check?
 	//We do not need to change CPU when sd_flag is SD_BALANCE_EXEC although it is very good chance to balancing. See 2682 in core.c
 	//	if(!(sd_flag&SD_BALANCE_WAKE) && !(sd_flag && SD_BALANCE_FORK)) return old_cpu;
-	
+
+	/*
 	#ifdef CONFIG_IMPROVEMENT 			// It is 5% faster than before !!
 	if(unlikely(p->tgid != p-> pid)) { // if process has other thread group heads it would be share cache.
 	 	group_leader = find_task_by_vpid(p->tgid);
 	 	if(group_leader != NULL) 
 			return task_cpu(group_leader); //allocate same CPU. 
 	}
-	#endif  /* CONFIG_IMPROVEMENT */
+	#endif*/  /* CONFIG_IMPROVEMENT */
 	rcu_read_lock();
 
 	rq = cpu_rq(old_cpu);
