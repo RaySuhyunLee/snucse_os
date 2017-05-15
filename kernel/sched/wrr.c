@@ -340,9 +340,9 @@ static void wrr_load_balance(void) {
 		rq = cpu_rq(i);
 
 		wrr_rq = &rq->wrr;
-		printk(KERN_ERR "CPU %d: %d tasks in queue\n", i, wrr_rq->wrr_nr_running);
-		if (rq->curr)
-			printk(KERN_ERR "task(%d) running\n", rq->curr->pid);
+		//printk(KERN_ERR "CPU %d: %d tasks in queue\n", i, wrr_rq->wrr_nr_running);
+		//if (rq->curr)
+		//	printk(KERN_ERR "task(%d) running\n", rq->curr->pid);
 		
 		active_cores ++;
 		
@@ -357,7 +357,7 @@ static void wrr_load_balance(void) {
 		}
 	}
 	
-	printk(KERN_ERR "active cores: %d\n", active_cores);
+	//printk(KERN_ERR "active cores: %d\n", active_cores);
 
 	if (active_cores <= 1) {	// nothing to balance
 		return;
@@ -368,15 +368,15 @@ static void wrr_load_balance(void) {
 	rcu_read_unlock();	
 
 	if (p) {
-		printk(KERN_ERR "Move: cpu %d(%d) -> task pid %d, weight %d -> cpu %d(%d)\n", 
+		/*printk(KERN_ERR "Move: cpu %d(%d) -> task pid %d, weight %d -> cpu %d(%d)\n", 
 				max_index, cpu_rq(max_index)->wrr.wrr_nr_running, p->pid, p->wrr.weight,
-				min_index, cpu_rq(min_index)->wrr.wrr_nr_running);
+				min_index, cpu_rq(min_index)->wrr.wrr_nr_running);*/
 
 		wrr_migrate_task(p, max_index, min_index);
 
-		printk(KERN_ERR "After: cpu %d(%d) -> task pid %d, weight %d -> cpu %d(%d)\n", 
+		/*printk(KERN_ERR "After: cpu %d(%d) -> task pid %d, weight %d -> cpu %d(%d)\n", 
 				max_index, cpu_rq(max_index)->wrr.wrr_nr_running, p->pid, p->wrr.weight,
-				min_index, cpu_rq(min_index)->wrr.wrr_nr_running);
+				min_index, cpu_rq(min_index)->wrr.wrr_nr_running);*/
 	}
 
 	preempt_enable();
