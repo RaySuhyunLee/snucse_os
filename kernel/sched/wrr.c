@@ -189,14 +189,14 @@ static int select_task_rq_wrr(struct task_struct *p, int sd_flag, int flag) {
 	//We do not need to change CPU when sd_flag is SD_BALANCE_EXEC although it is very good chance to balancing. See 2682 in core.c
 	//	if(!(sd_flag&SD_BALANCE_WAKE) && !(sd_flag && SD_BALANCE_FORK)) return old_cpu;
 
-	/*
-	#ifdef CONFIG_IMPROVEMENT 			// It is 5% faster than before !!
+	
+	#ifdef CONFIG_IMPROVEMENT 			// It is much faster than before !!
 	if(unlikely(p->tgid != p-> pid)) { // if process has other thread group heads it would be share cache.
 	 	group_leader = find_task_by_vpid(p->tgid);
 	 	if(group_leader != NULL) 
 			return task_cpu(group_leader); //allocate same CPU. 
 	}
-	#endif*/  /* CONFIG_IMPROVEMENT */
+	#endif  /* CONFIG_IMPROVEMENT */
 	rcu_read_lock();
 
 	rq = cpu_rq(old_cpu);
