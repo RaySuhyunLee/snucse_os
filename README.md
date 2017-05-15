@@ -77,7 +77,7 @@ It is about our initial policy (TA's policy) is good~
 
 ### Factors influencing result (need control over these factors for more trustworthy results)
 1. Temperature of the CPU of ARTIK
-2. The PID when our test case starts
+2. The allocated PID when our test case first starts
 
 1.
 #TODO Important
