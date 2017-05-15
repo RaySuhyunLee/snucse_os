@@ -13,7 +13,7 @@ extern int wrr_set_weight(struct sched_wrr_entity*, int);
 #define wrr_get_weight(__wrr_entity, __var) \
 	do { \
 		read_lock(&(__wrr_entity)->weight_lock); \
-		(__var) = (__wrr_entity)->weight; \
+		*(__var) = (__wrr_entity)->weight; \
 		read_unlock(&(__wrr_entity)->weight_lock); \
 	} while(0)
 
