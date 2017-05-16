@@ -65,9 +65,9 @@ If we refer to sched_rt_class and sched_fair_class we can find the needed functi
 Use an rwlock for the lock. rwlocks are declared within the schedular entity of wrr(include/linux/sched.h) and are initialized once when the schedular class is initialized(kernel/sched/core.c). Locks are cloned for forked tasks. Through this we do not need to initialize the lock when we use it, we just can use it.
 
 ### Load Balancing Implementation
-1. Policy follows the TA's policy
-2. We use the built in function `__migrate_task` to migrate
-3. 
+1. Policy follows the TA's policy.
+2. We use the built in function `__migrate_task` (in core.c) to migrate.
+3. When __migrate_task fails for some reason(in case migration is not possible), our function abort migration.
 
 ## 2. Investigation
 It is about our initial policy (TA's policy) is good~
