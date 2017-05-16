@@ -60,6 +60,6 @@ int sys_sched_getweight(pid_t pid){
 		}
 	}
 
-	wrr_get_weight(&p->wrr, weight);
+	wrr_get_weight(&p->wrr, &weight);
 	return weight;
 }

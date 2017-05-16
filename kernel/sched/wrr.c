@@ -93,6 +93,7 @@ static inline int on_wrr_rq(struct sched_wrr_entity *wrr_se) {
 
 static void enqueue_task_wrr(struct rq *rq, struct task_struct *p, int flag) {
 	struct sched_wrr_entity *wrr_se = &p->wrr; //&(p->wrr)
+	int weight;
 
 //	if(current->pid>5000) printk(KERN_DEBUG "enqueue_task_wrr\n");
 	if(flag & ENQUEUE_WAKEUP) 
@@ -103,19 +104,22 @@ static void enqueue_task_wrr(struct rq *rq, struct task_struct *p, int flag) {
 	list_add_tail_rcu(&wrr_se->run_list, &rq->wrr.queue);
 	++rq -> wrr.wrr_nr_running;
 	
-	rq->wrr.total_weight += p->wrr.weight; //
+	wrr_get_weight(&p->wrr, &weight);
+	rq->wrr.total_weight += weight;
 
 	inc_nr_running(rq);
 }
 
 static void dequeue_task_wrr(struct rq *rq, struct task_struct *p, int flag) {
 	struct sched_wrr_entity *wrr_se = &p->wrr;
+	int weight;
 	
 //	if(current->pid>5000) printk(KERN_DEBUG "dequeue_task_wrr\n");
 	update_curr_wrr(rq);	//I think I have to implement this thing
 	list_del_rcu(&wrr_se->run_list);
 	--rq -> wrr.wrr_nr_running;
-	rq->wrr.total_weight -= p->wrr.weight;
+	wrr_get_weight(&p->wrr, &weight);
+	rq->wrr.total_weight -= weight;
 
 	dec_nr_running(rq);
 }
@@ -185,14 +189,14 @@ static int select_task_rq_wrr(struct task_struct *p, int sd_flag, int flag) {
 	//We do not need to change CPU when sd_flag is SD_BALANCE_EXEC although it is very good chance to balancing. See 2682 in core.c
 	//	if(!(sd_flag&SD_BALANCE_WAKE) && !(sd_flag && SD_BALANCE_FORK)) return old_cpu;
 
-	/*
-	#ifdef CONFIG_IMPROVEMENT 			// It is 5% faster than before !!
+	
+	#ifdef CONFIG_IMPROVEMENT 			// It is much faster than before !!
 	if(unlikely(p->tgid != p-> pid)) { // if process has other thread group heads it would be share cache.
 	 	group_leader = find_task_by_vpid(p->tgid);
 	 	if(group_leader != NULL) 
 			return task_cpu(group_leader); //allocate same CPU. 
 	}
-	#endif*/  /* CONFIG_IMPROVEMENT */
+	#endif  /* CONFIG_IMPROVEMENT */
 	rcu_read_lock();
 
 	rq = cpu_rq(old_cpu);
@@ -258,13 +262,16 @@ prio_changed_wrr(struct rq *rq, struct task_struct *p, int oldprio) {
 }
 
 static unsigned int get_rr_interval_wrr(struct rq *rq, struct task_struct *task) {
-	return msecs_to_jiffies(10*task->wrr.weight);
+	int weight;
+	
+	wrr_get_weight(&task->wrr, &weight);
+	return msecs_to_jiffies(10*weight);
 }
 
 static void switched_to_wrr(struct rq *rq, struct task_struct *p) {
 	struct sched_wrr_entity *wrr_entity = &p->wrr;
 	wrr_entity -> task = p;
-	wrr_entity -> weight = 10;
+	wrr_set_weight(wrr_entity, 10);
 }
 
 const struct sched_class wrr_sched_class = {
@@ -333,9 +340,9 @@ static void wrr_load_balance(void) {
 		rq = cpu_rq(i);
 
 		wrr_rq = &rq->wrr;
-		printk(KERN_ERR "CPU %d: %d tasks in queue\n", i, wrr_rq->wrr_nr_running);
-		if (rq->curr)
-			printk(KERN_ERR "task(%d) running\n", rq->curr->pid);
+		//printk(KERN_ERR "CPU %d: %d tasks in queue\n", i, wrr_rq->wrr_nr_running);
+		//if (rq->curr)
+		//	printk(KERN_ERR "task(%d) running\n", rq->curr->pid);
 		
 		active_cores ++;
 		
@@ -350,7 +357,7 @@ static void wrr_load_balance(void) {
 		}
 	}
 	
-	printk(KERN_ERR "active cores: %d\n", active_cores);
+	//printk(KERN_ERR "active cores: %d\n", active_cores);
 
 	if (active_cores <= 1) {	// nothing to balance
 		return;
@@ -361,15 +368,15 @@ static void wrr_load_balance(void) {
 	rcu_read_unlock();	
 
 	if (p) {
-		printk(KERN_ERR "Move: cpu %d(%d) -> task pid %d, weight %d -> cpu %d(%d)\n", 
+		/*printk(KERN_ERR "Move: cpu %d(%d) -> task pid %d, weight %d -> cpu %d(%d)\n", 
 				max_index, cpu_rq(max_index)->wrr.wrr_nr_running, p->pid, p->wrr.weight,
-				min_index, cpu_rq(min_index)->wrr.wrr_nr_running);
+				min_index, cpu_rq(min_index)->wrr.wrr_nr_running);*/
 
 		wrr_migrate_task(p, max_index, min_index);
 
-		printk(KERN_ERR "After: cpu %d(%d) -> task pid %d, weight %d -> cpu %d(%d)\n", 
+		/*printk(KERN_ERR "After: cpu %d(%d) -> task pid %d, weight %d -> cpu %d(%d)\n", 
 				max_index, cpu_rq(max_index)->wrr.wrr_nr_running, p->pid, p->wrr.weight,
-				min_index, cpu_rq(min_index)->wrr.wrr_nr_running);
+				min_index, cpu_rq(min_index)->wrr.wrr_nr_running);*/
 	}
 
 	preempt_enable();
@@ -400,12 +407,14 @@ static struct task_struct * find_task_to_move(struct rq *this_rq, int min_load, 
 
 	list_for_each_entry(wrr_se, &this_wrr_rq->queue, run_list) {
 		p = container_of(wrr_se, struct task_struct, wrr);
+		//read_lock(&wrr_se->weight_lock);
 		if (p != this_rq->curr		// not currently running
 			&&wrr_se->weight > moving_entity_weight
 			&& min_load + wrr_se->weight < max_load - wrr_se->weight) {
 			moving_entity = wrr_se;
 			moving_entity_weight = wrr_se->weight;
 		}
+		//read_unlock(&wrr_se->weight_lock);
 	}
 
 	if (!moving_entity)
