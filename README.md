@@ -80,7 +80,10 @@ It is about our initial policy (TA's policy) is good~
 1. Run 20 background tasks with weights from 1 to 20
 2. Run Trial and Division code weights 1 to 20 Sequentially
 
-[figure]
+![alt text](https://github.com/swsnu/os-team20/blob/proj3/fig1.png)
+
+[fig 1] Test casese 2
+
 
 ### Factors influencing result (need control over these factors for more trustworthy results)
 1. Temperature of the CPU of ARTIK
@@ -106,8 +109,14 @@ Sencond test shows that how faster our policy. This test is directly influenced 
 
 ### Result
 
-[figure]
-[figure]
+![alt text](https://github.com/swsnu/os-team20/blob/proj3/fig2.png)
+
+[fig 2] Experiments 1
+
+![alt text](https://github.com/swsnu/os-team20/blob/proj3/fig3.png)
+
+[fig 3] Experiments 2
+
   Although in the result of first test, there are a little difference, there are huge difference (10% in 20 threads) in the second test. Therefore our policy is very good!
 
 ## Lessons Learned
