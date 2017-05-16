@@ -82,7 +82,7 @@ It is about our initial policy (TA's policy) is good~
 
 ![alt text](https://github.com/swsnu/os-team20/blob/proj3/fig1.png)
 
-[fig 1] Test casese 2
+[fig 1] Test cases 2
 
 
 ### Factors influencing result (need control over these factors for more trustworthy results)
