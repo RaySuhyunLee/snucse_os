@@ -22,7 +22,7 @@ The total weight of each queues are used for allocating CPUs and setting weights
 
 
 ### About time_slice
-Time_slice shares the same units of jiffies. So we use msecs_to_jiffies().
+Time_slice shares the same units of jiffies. So we use msecs_to_jiffies() when we set time_slice.
 The time_slice is updated when the task is enqueued or requeued. 
 When sched_set_weight modified the weight of a task in the runqueue and the task is not currently running, the time slice of the task must be upadated according to the new weight. 
 
