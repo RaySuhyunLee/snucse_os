@@ -29,6 +29,8 @@
 #include <linux/percpu-rwsem.h>
 #include <linux/blk_types.h>
 
+#include <linux/gps.h>
+
 #include <asm/byteorder.h>
 #include <uapi/linux/fs.h>
 
@@ -1539,6 +1541,9 @@ struct inode_operations {
 	void * (*follow_link) (struct dentry *, struct nameidata *);
 	int (*permission) (struct inode *, int);
 	struct posix_acl * (*get_acl)(struct inode *, int);
+	
+	int (*set_gps_location)(struct inode *);
+	int (*get_gps_location)(struct inode*, struct gps_location*);
 
 	int (*readlink) (struct dentry *, char __user *,int);
 	void (*put_link) (struct dentry *, struct nameidata *, void *);
