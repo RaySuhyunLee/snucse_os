@@ -4,6 +4,7 @@
 #include <linux/types.h>
 #include <linux/slab.h>
 #include <linux/uaccess.h>
+#include <linux/spinlock_types.h>
 
 struct gps_location __curr_gps_loc = {
 	.lat_integer = 39,
@@ -12,6 +13,8 @@ struct gps_location __curr_gps_loc = {
 	.lng_fractional = 762500,
 	.accuracy = 0
 };
+
+DEFINE_SPINLOCK(gps_lock);
 
 /*
  * Set current gps location stored in kernel.
@@ -28,15 +31,16 @@ int sys_set_gps_location(struct gps_location __user *loc) {
 	if (e > 0) {
 		return -EINVAL;
 	} else {
-		// TODO acquire lock
+		spin_lock(&gps_lock);
 		__curr_gps_loc.lat_integer = buf.lat_integer;
 		__curr_gps_loc.lat_fractional = buf.lat_fractional;
 		__curr_gps_loc.lng_integer = buf.lng_integer;
 		__curr_gps_loc.lng_fractional = buf.lng_fractional;
 		__curr_gps_loc.accuracy = buf.accuracy;
-		// TODO release lock
+		spin_unlock(&gps_lock);
 	}
 
+	// TODO remove below when debugging is not needed anymore.
 	printk(KERN_DEBUG "Set location to Lat: %d.%d, Lng: %d.%d, Accuracy: %d\n",
 			__curr_gps_loc.lat_integer,
 			__curr_gps_loc.lat_fractional,
@@ -53,9 +57,9 @@ int sys_get_gps_location (const char __user *pathname, struct gps_location __use
 	
 	unsigned long e;	// to check copy error
 
-	// TODO acquire lock
+	spin_lock(&gps_lock);
 	e = copy_to_user(loc, &__curr_gps_loc, sizeof(struct gps_location));
-	// TODO release lock
+	spin_unlock(&gps_lock);
 
 	if (e > 0) {
 		return -EINVAL;
