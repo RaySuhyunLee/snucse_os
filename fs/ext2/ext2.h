@@ -306,6 +306,14 @@ struct ext2_inode {
 	__le16	i_links_count;	/* Links count */
 	__le32	i_blocks;	/* Blocks count */
 	__le32	i_flags;	/* File flags */
+	#ifdef CONFIG_EXT2_FS // this is for gps_location
+	__le32 i_lat_integer;
+	__le32 i_lat_fractional;
+	__le32 i_lng_integer;
+	__le32 i_lng_fractional;
+	__le32 i_fractional;
+	__le32 i_accuracy;
+	#endif
 	union {
 		struct {
 			__le32  l_i_reserved1;
