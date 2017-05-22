@@ -1,4 +1,7 @@
-#include<linux/types.h>
+#ifndef __GPS_H
+#define __GPS_H
+
+#include <linux/types.h>
 
 struct gps_location {
 	int lat_integer;
@@ -7,3 +10,8 @@ struct gps_location {
 	int lng_fractional;
 	int accuracy;
 };
+
+// global variable that stores current location
+extern struct gps_location __curr_gps_loc;
+
+#endif
