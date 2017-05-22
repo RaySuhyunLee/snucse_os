@@ -11,6 +11,7 @@
 #ifndef _LINUX_SYSCALLS_H
 #define _LINUX_SYSCALLS_H
 
+struct gps_location;
 struct epoll_event;
 struct iattr;
 struct inode;
@@ -846,4 +847,6 @@ asmlinkage long sys_process_vm_writev(pid_t pid,
 asmlinkage long sys_kcmp(pid_t pid1, pid_t pid2, int type,
 			 unsigned long idx1, unsigned long idx2);
 asmlinkage long sys_finit_module(int fd, const char __user *uargs, int flags);
+asmlinkage int set_gps_location (struct gps_location __user *loc);
+asmlinkage int get_gps_location (const char __user *pathname, struct gps_location __user *loc);
 #endif
