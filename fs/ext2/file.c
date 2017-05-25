@@ -24,12 +24,61 @@
 #include "ext2.h"
 #include "xattr.h"
 #include "acl.h"
+// I need to include errorno
 
 /*
  * Called when filp is released. This happens when all file descriptors
  * for a single struct file are closed. Note that different open() calls
  * for the same file yield different struct file structures.
  */
+
+// global var : __curr_gps_loc
+/*
+ *i_lat_integer (32-bits)
+ i_lat_fractional (32-bits)
+ i_lng_integer (32-bits)
+ i_lng_fractional (32-bits)
+ i_accuracy (32-bits)
+ */
+/*
+ * struct gps_location {
+ *   int lat_integer;
+ *     int lat_fractional;
+ *       int lng_integer;
+ *         int lng_fractional;
+ *           int accuracy;
+ *           };
+ */
+
+/* do we need to get other var as proj1 ?  maybe not*/
+
+DEFINE_SPINLOCK(gps_lock); // Do I need to define here? not in gps.h?
+
+int ext2_set_gps_location (struct inode* inode) {
+	if (inode == NULL) return -EPARAM;
+ 	spin_lock(&gps_lock);
+	inode->i_lat_integer = __curr_gps_location.lat_integer; 
+	inode->i_lat_fractional = __curr_gps_location.lat_fractional;
+	inode->i_lng_integer = __curr_gps_location.lng_integer;
+	inode->i_lng_fractional = __curr_gps_location.lng_fractional;
+	inode->i_accuracy = __curr_gps_location.accuracy;
+	spin_unlock(&gps_lock);
+
+	return 0 ;
+}
+
+int ext2_get_gps_location (struct inode* inode, struct gps_location gps) {
+ 	gps.lat_integer = inode->i_lat_integer;
+	gps.lat_fractional = inode->i_lat_fractional;
+	gps.lng_integer = inode->i_lng_integer;
+	gps.lng_fractional = inode->i_lng_fractional;
+	gps->i_accuracy = inode->i_accuracy;
+	spin_unlock(&gps_lock);
+
+	return 0;
+}
+
+
 static int ext2_release_file (struct inode * inode, struct file * filp)
 {
 	if (filp->f_mode & FMODE_WRITE) {
@@ -104,4 +153,8 @@ const struct inode_operations ext2_file_inode_operations = {
 	.setattr	= ext2_setattr,
 	.get_acl	= ext2_get_acl,
 	.fiemap		= ext2_fiemap,
+#ifdef CONFIG_EXT2_FS
+	.set_gps_location = ext2_set_gps_location,
+	.get_gps_location = ext2_get_gps_location,
+#endif
 };
