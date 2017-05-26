@@ -52,16 +52,14 @@
 
 /* do we need to get other var as proj1 ?  maybe not*/
 
-DEFINE_SPINLOCK(gps_lock); // Do I need to define here? not in gps.h?
-
 int ext2_set_gps_location (struct inode* inode) {
-	if (inode == NULL) return -EPARAM;
+	if (inode == NULL) return -1; // TODO change ERROR
  	spin_lock(&gps_lock);
-	EXT2_I(inode)->i_lat_integer = __curr_gps_location.lat_integer; 
-	EXT2_I(inode)->i_lat_fractional = __curr_gps_location.lat_fractional;
-	EXT2_I(inode)->i_lng_integer = __curr_gps_location.lng_integer;
-	EXT2_I(inode)->i_lng_fractional = __curr_gps_location.lng_fractional;
-	EXT2_I(inode)->i_accuracy = __curr_gps_location.accuracy;
+	EXT2_I(inode)->i_lat_integer = __curr_gps_loc.lat_integer; 
+	EXT2_I(inode)->i_lat_fractional = __curr_gps_loc.lat_fractional;
+	EXT2_I(inode)->i_lng_integer = __curr_gps_loc.lng_integer;
+	EXT2_I(inode)->i_lng_fractional = __curr_gps_loc.lng_fractional;
+	EXT2_I(inode)->i_accuracy = __curr_gps_loc.accuracy;
 	spin_unlock(&gps_lock);
 
 	return 0 ;
