@@ -1432,7 +1432,7 @@ bad_inode:
 	return ERR_PTR(ret);
 }
 
-static int __ext2_write_inode(struct inode *inode, int do_sync)
+static int __ext2_write_inode(struct inode *inode, int do_sync) //TODO
 {
 	struct ext2_inode_info *ei = EXT2_I(inode);
 	struct super_block *sb = inode->i_sb;
