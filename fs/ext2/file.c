@@ -57,22 +57,22 @@ DEFINE_SPINLOCK(gps_lock); // Do I need to define here? not in gps.h?
 int ext2_set_gps_location (struct inode* inode) {
 	if (inode == NULL) return -EPARAM;
  	spin_lock(&gps_lock);
-	inode->i_lat_integer = __curr_gps_location.lat_integer; 
-	inode->i_lat_fractional = __curr_gps_location.lat_fractional;
-	inode->i_lng_integer = __curr_gps_location.lng_integer;
-	inode->i_lng_fractional = __curr_gps_location.lng_fractional;
-	inode->i_accuracy = __curr_gps_location.accuracy;
+	EXT2_I(inode)->i_lat_integer = __curr_gps_location.lat_integer; 
+	EXT2_I(inode)->i_lat_fractional = __curr_gps_location.lat_fractional;
+	EXT2_I(inode)->i_lng_integer = __curr_gps_location.lng_integer;
+	EXT2_I(inode)->i_lng_fractional = __curr_gps_location.lng_fractional;
+	EXT2_I(inode)->i_accuracy = __curr_gps_location.accuracy;
 	spin_unlock(&gps_lock);
 
 	return 0 ;
 }
 
 int ext2_get_gps_location (struct inode* inode, struct gps_location gps) {
- 	gps.lat_integer = inode->i_lat_integer;
-	gps.lat_fractional = inode->i_lat_fractional;
-	gps.lng_integer = inode->i_lng_integer;
-	gps.lng_fractional = inode->i_lng_fractional;
-	gps->i_accuracy = inode->i_accuracy;
+ 	gps.lat_integer = EXT2_I(inode)->i_lat_integer;
+	gps.lat_fractional = EXT2_I(inode)->i_lat_fractional;
+	gps.lng_integer = EXT2_I(inode)->i_lng_integer;
+	gps.lng_fractional = EXT2_I(inode)->i_lng_fractional;
+	gps.accuracy = EXT2_I(inode)->i_accuracy;
 	spin_unlock(&gps_lock);
 
 	return 0;
