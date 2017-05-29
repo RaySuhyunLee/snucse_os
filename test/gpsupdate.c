@@ -3,6 +3,7 @@
 #include <unistd.h>
 #include <sys/types.h>
 #include <errno.h>
+#include <string.h>
 
 struct gps_location {
 	int lat_integer;
@@ -33,13 +34,18 @@ int main (int argc, char** argv) {
 		loc_buf.accuracy = atoi(argv[3]);
 	}
 
+	printf("GPS location set to lat: %d.%06d, lng: %d.%06d, acc: %d\n",
+			loc_buf.lat_integer, loc_buf.lat_fractional,
+			loc_buf.lng_integer, loc_buf.lng_fractional,
+			loc_buf.accuracy);
+
 	int a = syscall(380, &loc_buf);
 
 	return 0;
 }
 
 void divide_float(char* num, int *integer, int *fractional) {
-	int i = 0;
+	int i = 0, j;
 	double num_buf;
 
 	sscanf(num, "%lf", &num_buf);
@@ -52,6 +58,9 @@ void divide_float(char* num, int *integer, int *fractional) {
 
 	if (num[i] == '.') {
 		*fractional = atoi(&num[i+1]);
+		for (j = 6 - (strlen(num) - (i + 1)); j>0; j--) {
+			*fractional *= 10;
+		}
 	} else {
 		*fractional = 0;
 	}
