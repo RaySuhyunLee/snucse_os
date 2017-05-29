@@ -68,6 +68,7 @@ int sys_get_gps_location (const char __user *pathname, struct gps_location __use
 	struct path path;
 	struct gps_location* gps;
 	char * _pathname;
+
 	int ret;
 
 	if(!access_ok(VERIFY_READ, pathname, sizeof(char)*255)) return -EFAULT;
@@ -82,26 +83,16 @@ int sys_get_gps_location (const char __user *pathname, struct gps_location __use
 		return -EINVAL;
 	}
 
-	// get actual path
+	// get inode
 	e = kern_path(_pathname, LOOKUP_FOLLOW, &path);
-	if (e < 0) {
-		printk(KERN_DEBUG "wrong path\n");
-		return e;
+	if (e != 0) {
+		return -ENOENT;
 	}
-	printk(KERN_DEBUG "kern_path success\n");
 	inode = path.dentry->d_inode;
-	printk(KERN_DEBUG "before null check\n");
-	if (!inode)
+
+	if (!inode->i_op || !(inode->i_op->permission)) {
 		return -EINVAL;
-	printk(KERN_DEBUG "inode exists\n");
-	if (!(inode->i_op))
-		return -EINVAL;
-	printk(KERN_DEBUG "i_op exists\n");
-	if (!(inode->i_op->permission))
-		return -EINVAL;
-	printk(KERN_DEBUG "permission exists\n");
-	//if (!inode || !(inode->i_op) || !(inode->i_op->permission))
-	//	return -EINVAL;
+	}
 	
 	printk(KERN_DEBUG "before permission check\n");
 	if(inode->i_op->permission(inode,MAY_READ) == -EACCES) 
