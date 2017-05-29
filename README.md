@@ -9,6 +9,12 @@ We followed T.A's high level guideline in this project.
 ## Implementation
 * Current GPS location is stored in global variable, and is protected by spinlock for SMP environment.
 * Add new informations to existing inode structures, to follow conventions.
+* ext2_set_gps_location is called when i_mtime (modification time is changed), and in generic_mmap.q
+* ext2_get_gps_location is only using in get_gps_location system call.
+* file_loc 
+
+## Test
+
 
 ## Permission Policy
 Since linux doesn't support floating point operations inside kernel, we used following formulas to compare file location with current location(GPS hardware location).
@@ -29,6 +35,7 @@ Thus, our kernel
 ```
 
 ## Lessons Learned
+* Ext2 File System is simpler than what we thought. But the project is much harder than our thought.
 * At the end of hardship comes hapiness.
 * At the end of hapiness comes another project.
 * At the end of last project comes JongGang(Probably).
