@@ -31,7 +31,10 @@ int is_near(struct inode* inode) {
 	if (diff.lat_integer != 0 || diff.lng_integer != 0) {
 		return 0;
 	}
+	if(diff.accuracy == 0) {
+		return (diff.lng_fractional ==0) && (diff.lat_fractional == 0);
 
+	}
 	if (POW(TO_METER((long)diff.lat_fractional)) 
 		+ POW(TO_METER((long)diff.lng_fractional)) < POW((long)diff.accuracy)) {
 		return 1;
