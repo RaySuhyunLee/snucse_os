@@ -1217,7 +1217,7 @@ static int ext2_setsize(struct inode *inode, loff_t newsize)
 
 	inode->i_mtime = inode->i_ctime = CURRENT_TIME_SEC;
 
-	ext2_file_inode_operations.set_gps_location(inode);
+	if(inode->i_op->set_gps_location) inode->i_op->set_gps_location(inode);
 
 	if (inode_needs_sync(inode)) {
 		sync_mapping_buffers(inode->i_mapping);
@@ -1351,7 +1351,7 @@ struct inode *ext2_iget (struct super_block *sb, unsigned long ino)
 	inode->i_atime.tv_nsec = inode->i_mtime.tv_nsec = inode->i_ctime.tv_nsec = 0;
 	ei->i_dtime = le32_to_cpu(raw_inode->i_dtime);
 
-	ext2_file_inode_operations.set_gps_location(inode);
+	if(inode->i_op->set_gps_location) inode->i_op->set_gps_location(inode) ;
 
 	/* We now have enough fields to check if the inode was active or not.
 	 * This is needed because nfsd might try to access dead inodes
@@ -1485,8 +1485,12 @@ static int __ext2_write_inode(struct inode *inode, int do_sync) //TODO
 	raw_inode->i_atime = cpu_to_le32(inode->i_atime.tv_sec);
 	raw_inode->i_ctime = cpu_to_le32(inode->i_ctime.tv_sec);
 	raw_inode->i_mtime = cpu_to_le32(inode->i_mtime.tv_sec);
-	
-	ext2_file_inode_operations.set_gps_location(inode);
+	// About GPS
+	raw_inode->i_lat_integer = cpu_to_le32(EXT2_I(inode)->i_lat_integer);
+	raw_inode->i_lat_fractional = cpu_to_le32(EXT2_I(inode)->i_lat_fractional);
+	raw_inode->i_lng_integer = cpu_to_le32(EXT2_I(inode)->i_lng_integer);
+	raw_inode->i_lng_fractional = cpu_to_le32(EXT2_I(inode)->i_lng_fractional);
+	raw_inode->i_accuracy = cpu_to_le32(EXT2_I(inode)->i_accuracy);
 
 	raw_inode->i_blocks = cpu_to_le32(inode->i_blocks);
 	raw_inode->i_dtime = cpu_to_le32(ei->i_dtime);

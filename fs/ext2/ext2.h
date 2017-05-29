@@ -663,12 +663,12 @@ struct ext2_inode_info {
 	__u32	i_dir_acl;
 	__u32	i_dtime;
 	#ifdef CONFIG_EXT2_FS // this is for gps_location
-	__le32 i_lat_integer;
-	__le32 i_lat_fractional;
-	__le32 i_lng_integer;
-	__le32 i_lng_fractional;
-	__le32 i_fractional;
-	__le32 i_accuracy;
+	__u32 i_lat_integer;
+	__u32 i_lat_fractional;
+	__u32 i_lng_integer;
+	__u32 i_lng_fractional;
+	__u32 i_fractional;
+	__u32 i_accuracy;
 	#endif
 	
 	/*
