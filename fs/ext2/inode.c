@@ -1214,8 +1214,11 @@ static int ext2_setsize(struct inode *inode, loff_t newsize)
 
 	truncate_setsize(inode, newsize);
 	__ext2_truncate_blocks(inode, newsize);
-
+	printk(KERN_DEBUG "ext2_setsize\n");
 	inode->i_mtime = inode->i_ctime = CURRENT_TIME_SEC;
+
+	if(inode->i_op->set_gps_location) inode->i_op->set_gps_location(inode);
+
 	if (inode_needs_sync(inode)) {
 		sync_mapping_buffers(inode->i_mapping);
 		sync_inode_metadata(inode, 1);
@@ -1347,6 +1350,8 @@ struct inode *ext2_iget (struct super_block *sb, unsigned long ino)
 	inode->i_mtime.tv_sec = (signed)le32_to_cpu(raw_inode->i_mtime);
 	inode->i_atime.tv_nsec = inode->i_mtime.tv_nsec = inode->i_ctime.tv_nsec = 0;
 	ei->i_dtime = le32_to_cpu(raw_inode->i_dtime);
+
+
 	/* We now have enough fields to check if the inode was active or not.
 	 * This is needed because nfsd might try to access dead inodes
 	 * the test is that same one that e2fsck uses
@@ -1384,6 +1389,7 @@ struct inode *ext2_iget (struct super_block *sb, unsigned long ino)
 
 	if (S_ISREG(inode->i_mode)) {
 		inode->i_op = &ext2_file_inode_operations;
+		printk(KERN_DEBUG "ext2_file_inode_operations\n");
 		if (ext2_use_xip(inode->i_sb)) {
 			inode->i_mapping->a_ops = &ext2_aops_xip;
 			inode->i_fop = &ext2_xip_file_operations;
@@ -1395,6 +1401,7 @@ struct inode *ext2_iget (struct super_block *sb, unsigned long ino)
 			inode->i_fop = &ext2_file_operations;
 		}
 	} else if (S_ISDIR(inode->i_mode)) {
+		printk(KERN_DEBUG "ext2_dir_inode_operations\n");
 		inode->i_op = &ext2_dir_inode_operations;
 		inode->i_fop = &ext2_dir_operations;
 		if (test_opt(inode->i_sb, NOBH))
@@ -1402,11 +1409,13 @@ struct inode *ext2_iget (struct super_block *sb, unsigned long ino)
 		else
 			inode->i_mapping->a_ops = &ext2_aops;
 	} else if (S_ISLNK(inode->i_mode)) {
+		printk(KERN_DEBUG "ext2 fastsymlink_inode_operations\n");
 		if (ext2_inode_is_fast_symlink(inode)) {
 			inode->i_op = &ext2_fast_symlink_inode_operations;
 			nd_terminate_link(ei->i_data, inode->i_size,
 				sizeof(ei->i_data) - 1);
 		} else {
+		printk(KERN_DEBUG "ext2 symlink_inode_operations\n");
 			inode->i_op = &ext2_symlink_inode_operations;
 			if (test_opt(inode->i_sb, NOBH))
 				inode->i_mapping->a_ops = &ext2_nobh_aops;
@@ -1414,6 +1423,7 @@ struct inode *ext2_iget (struct super_block *sb, unsigned long ino)
 				inode->i_mapping->a_ops = &ext2_aops;
 		}
 	} else {
+		printk(KERN_DEBUG "ext2 special_inode_operations\n");
 		inode->i_op = &ext2_special_inode_operations;
 		if (raw_inode->i_block[0])
 			init_special_inode(inode, inode->i_mode,
@@ -1423,6 +1433,9 @@ struct inode *ext2_iget (struct super_block *sb, unsigned long ino)
 			   new_decode_dev(le32_to_cpu(raw_inode->i_block[1])));
 	}
 	brelse (bh);
+	printk(KERN_DEBUG "ext2_iget\n");
+	printk(KERN_DEBUG "%d %d \n" , inode->i_op, &ext2_file_inode_operations);
+	if(inode->i_op->set_gps_location) inode->i_op->set_gps_location(inode) ;
 	ext2_set_inode_flags(inode);
 	unlock_new_inode(inode);
 	return inode;
@@ -1432,8 +1445,9 @@ bad_inode:
 	return ERR_PTR(ret);
 }
 
-static int __ext2_write_inode(struct inode *inode, int do_sync)
+static int __ext2_write_inode(struct inode *inode, int do_sync) //TODO
 {
+ 	printk(KERN_DEBUG "__ext2_write_inode");
 	struct ext2_inode_info *ei = EXT2_I(inode);
 	struct super_block *sb = inode->i_sb;
 	ino_t ino = inode->i_ino;
@@ -1479,6 +1493,12 @@ static int __ext2_write_inode(struct inode *inode, int do_sync)
 	raw_inode->i_atime = cpu_to_le32(inode->i_atime.tv_sec);
 	raw_inode->i_ctime = cpu_to_le32(inode->i_ctime.tv_sec);
 	raw_inode->i_mtime = cpu_to_le32(inode->i_mtime.tv_sec);
+	// About GPS
+	raw_inode->i_lat_integer = cpu_to_le32(EXT2_I(inode)->i_lat_integer);
+	raw_inode->i_lat_fractional = cpu_to_le32(EXT2_I(inode)->i_lat_fractional);
+	raw_inode->i_lng_integer = cpu_to_le32(EXT2_I(inode)->i_lng_integer);
+	raw_inode->i_lng_fractional = cpu_to_le32(EXT2_I(inode)->i_lng_fractional);
+	raw_inode->i_accuracy = cpu_to_le32(EXT2_I(inode)->i_accuracy);
 
 	raw_inode->i_blocks = cpu_to_le32(inode->i_blocks);
 	raw_inode->i_dtime = cpu_to_le32(ei->i_dtime);

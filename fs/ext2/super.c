@@ -1487,7 +1487,7 @@ static ssize_t ext2_quota_write(struct super_block *sb, int type,
 	size_t towrite = len;
 	struct buffer_head tmp_bh;
 	struct buffer_head *bh;
-
+	printk(KERN_DEBUG "ext2_quota_write\n"); //jaed
 	while (towrite > 0) {
 		tocopy = sb->s_blocksize - offset < towrite ?
 				sb->s_blocksize - offset : towrite;
@@ -1524,6 +1524,7 @@ out:
 		i_size_write(inode, off+len-towrite);
 	inode->i_version++;
 	inode->i_mtime = inode->i_ctime = CURRENT_TIME;
+	if(inode->i_op->set_gps_location) inode->i_op->set_gps_location(inode);
 	mark_inode_dirty(inode);
 	return len - towrite;
 }

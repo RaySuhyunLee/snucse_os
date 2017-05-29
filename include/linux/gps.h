@@ -16,5 +16,4 @@ struct gps_location {
 extern struct gps_location __curr_gps_loc;
 
 extern spinlock_t gps_lock;
-
 #endif

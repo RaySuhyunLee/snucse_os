@@ -30,6 +30,37 @@
  * for a single struct file are closed. Note that different open() calls
  * for the same file yield different struct file structures.
  */
+
+
+int ext2_set_gps_location (struct inode* inode) {
+	printk(KERN_DEBUG "SET_GPS_LOCATION\n");
+ 	spin_lock(&gps_lock);
+	EXT2_I(inode)->i_lat_integer = __curr_gps_loc.lat_integer; 
+	EXT2_I(inode)->i_lat_fractional = __curr_gps_loc.lat_fractional;
+	EXT2_I(inode)->i_lng_integer = __curr_gps_loc.lng_integer;
+	EXT2_I(inode)->i_lng_fractional = __curr_gps_loc.lng_fractional;
+	EXT2_I(inode)->i_accuracy = __curr_gps_loc.accuracy;
+	spin_unlock(&gps_lock);
+	return 0 ;
+}
+
+int ext2_get_gps_location (struct inode* inode, struct gps_location*  gps) {
+	printk(KERN_DEBUG "GET_GPS_LOCATION\n");
+ 	gps->lat_integer = EXT2_I(inode)->i_lat_integer;
+	gps->lat_fractional = EXT2_I(inode)->i_lat_fractional;
+	gps->lng_integer = EXT2_I(inode)->i_lng_integer;
+	gps->lng_fractional = EXT2_I(inode)->i_lng_fractional;
+	gps->accuracy = EXT2_I(inode)->i_accuracy;
+	return 0;
+}
+
+int ext2_permission(struct inode * inode, int mask) {
+	//TODO distance check 
+	
+ 	return generic_permission(inode,mask);
+}
+
+
 static int ext2_release_file (struct inode * inode, struct file * filp)
 {
 	if (filp->f_mode & FMODE_WRITE) {
@@ -104,4 +135,9 @@ const struct inode_operations ext2_file_inode_operations = {
 	.setattr	= ext2_setattr,
 	.get_acl	= ext2_get_acl,
 	.fiemap		= ext2_fiemap,
+	.permission = ext2_permission,
+#ifdef CONFIG_EXT2_FS
+	.set_gps_location = ext2_set_gps_location,
+	.get_gps_location = ext2_get_gps_location,
+#endif
 };
