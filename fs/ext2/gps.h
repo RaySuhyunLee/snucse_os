@@ -1,8 +1,8 @@
 #ifndef __EXT2_GPS_H
 #define __EXT2_GPS_H
 
-#include <linux/gps.h>
+#include <linux/fs.h>
 
-extern int is_near(struct gps_location*)
+int is_near(struct inode*);
 
 #endif

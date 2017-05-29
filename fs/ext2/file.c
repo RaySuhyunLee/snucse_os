@@ -24,6 +24,7 @@
 #include "ext2.h"
 #include "xattr.h"
 #include "acl.h"
+#include "gps.h"
 
 /*
  * Called when filp is released. This happens when all file descriptors
@@ -56,6 +57,9 @@ int ext2_get_gps_location (struct inode* inode, struct gps_location*  gps) {
 
 int ext2_permission(struct inode * inode, int mask) {
 	//TODO distance check 
+	if (!is_near(inode)) {
+		return -EACCES;
+	}
 	
  	return generic_permission(inode,mask);
 }
