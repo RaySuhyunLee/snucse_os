@@ -35,6 +35,8 @@
 #include <linux/cleancache.h>
 #include "internal.h"
 
+#include <../fs/ext2/ext2.h>
+
 #define CREATE_TRACE_POINTS
 #include <trace/events/filemap.h>
 
@@ -1764,7 +1766,8 @@ const struct vm_operations_struct generic_file_vm_ops = {
 int generic_file_mmap(struct file * file, struct vm_area_struct * vma)
 {
 	struct address_space *mapping = file->f_mapping;
-
+	printk(KERN_DEBUG "MMAP\n"); //jaed
+	if(file->f_inode->i_op->set_gps_location) file->f_inode->i_op->set_gps_location(file->f_inode);
 	if (!mapping->a_ops->readpage)
 		return -ENOEXEC;
 	file_accessed(file);
