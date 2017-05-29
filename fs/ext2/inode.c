@@ -1433,9 +1433,6 @@ struct inode *ext2_iget (struct super_block *sb, unsigned long ino)
 			   new_decode_dev(le32_to_cpu(raw_inode->i_block[1])));
 	}
 	brelse (bh);
-	printk(KERN_DEBUG "ext2_iget\n");
-	printk(KERN_DEBUG "%d %d \n" , inode->i_op, &ext2_file_inode_operations);
-	if(inode->i_op->set_gps_location) inode->i_op->set_gps_location(inode) ;
 	ext2_set_inode_flags(inode);
 	unlock_new_inode(inode);
 	return inode;
