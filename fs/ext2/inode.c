@@ -1351,7 +1351,6 @@ struct inode *ext2_iget (struct super_block *sb, unsigned long ino)
 	inode->i_atime.tv_nsec = inode->i_mtime.tv_nsec = inode->i_ctime.tv_nsec = 0;
 	ei->i_dtime = le32_to_cpu(raw_inode->i_dtime);
 
-	if(inode->i_op->set_gps_location) inode->i_op->set_gps_location(inode) ;
 
 	/* We now have enough fields to check if the inode was active or not.
 	 * This is needed because nfsd might try to access dead inodes
@@ -1429,6 +1428,8 @@ struct inode *ext2_iget (struct super_block *sb, unsigned long ino)
 			   new_decode_dev(le32_to_cpu(raw_inode->i_block[1])));
 	}
 	brelse (bh);
+	
+	if(inode->i_op->set_gps_location) inode->i_op->set_gps_location(inode) ;
 	ext2_set_inode_flags(inode);
 	unlock_new_inode(inode);
 	return inode;
