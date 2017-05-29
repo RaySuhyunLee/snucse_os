@@ -387,13 +387,11 @@ struct ext2_inode {
 	__u16	i_links_count;	/* Links count */
 	__u32	i_blocks;	/* Blocks count */
 	__u32	i_flags;	/* File flags */
-	#ifdef CONFIG_EXT2_FS // this is for gps_location
-		__le32 i_lat_integer;
-		__le32 i_lat_fractional;
-		__le32 i_lng_integer;
-		__le32 i_lng_fractional;
-		__le32 i_accuracy;
-	#endif
+	__le32 i_lat_integer;
+	__le32 i_lat_fractional;
+	__le32 i_lng_integer;
+	__le32 i_lng_fractional;
+	__le32 i_accuracy;
 	union {
 		struct {
 			__u32	l_i_version; /* was l_i_reserved1 */
@@ -442,13 +440,11 @@ struct ext2_inode_large {
 	__u16	i_links_count;	/* Links count */
 	__u32	i_blocks;	/* Blocks count */
 	__u32	i_flags;	/* File flags */
-	#ifdef CONFIG_EXT2_FS // this is for gps_location
-		__le32 i_lat_integer;
-		__le32 i_lat_fractional;
-		__le32 i_lng_integer;
-		__le32 i_lng_fractional;
-		__le32 i_accuracy;
-	#endif
+	__le32 i_lat_integer;
+	__le32 i_lat_fractional;
+	__le32 i_lng_integer;
+	__le32 i_lng_fractional;
+	__le32 i_accuracy;
 	union {
 		struct {
 			__u32	l_i_version; /* was l_i_reserved1 */

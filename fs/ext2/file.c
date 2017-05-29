@@ -54,25 +54,24 @@
 
 int ext2_set_gps_location (struct inode* inode) {
 	printk(KERN_DEBUG "SET_GPS_LOCATION\n");
- /*	spin_lock(&gps_lock);
+ 	spin_lock(&gps_lock);
 	EXT2_I(inode)->i_lat_integer = __curr_gps_loc.lat_integer; 
 	EXT2_I(inode)->i_lat_fractional = __curr_gps_loc.lat_fractional;
 	EXT2_I(inode)->i_lng_integer = __curr_gps_loc.lng_integer;
 	EXT2_I(inode)->i_lng_fractional = __curr_gps_loc.lng_fractional;
 	EXT2_I(inode)->i_accuracy = __curr_gps_loc.accuracy;
 	spin_unlock(&gps_lock);
-*/
 	return 0 ;
 }
 
 int ext2_get_gps_location (struct inode* inode, struct gps_location*  gps) {
 	printk(KERN_DEBUG "GET_GPS_LOCATION\n");
-/* 	gps->lat_integer = EXT2_I(inode)->i_lat_integer;
+ 	gps->lat_integer = EXT2_I(inode)->i_lat_integer;
 	gps->lat_fractional = EXT2_I(inode)->i_lat_fractional;
 	gps->lng_integer = EXT2_I(inode)->i_lng_integer;
 	gps->lng_fractional = EXT2_I(inode)->i_lng_fractional;
 	gps->accuracy = EXT2_I(inode)->i_accuracy;
-*/	return 0;
+	return 0;
 }
 
 
