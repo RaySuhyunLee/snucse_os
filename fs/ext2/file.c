@@ -21,6 +21,7 @@
 #include <linux/time.h>
 #include <linux/pagemap.h>
 #include <linux/quotaops.h>
+#include <uapi/asm-generic/errno-base.h>
 #include "ext2.h"
 #include "xattr.h"
 #include "acl.h"
@@ -35,6 +36,7 @@
 
 int ext2_set_gps_location (struct inode* inode) {
 	printk(KERN_DEBUG "SET_GPS_LOCATION\n");
+	if(inode == NULL) return -EINVAL;
  	spin_lock(&gps_lock);
 	EXT2_I(inode)->i_lat_integer = __curr_gps_loc.lat_integer; 
 	EXT2_I(inode)->i_lat_fractional = __curr_gps_loc.lat_fractional;
@@ -46,7 +48,8 @@ int ext2_set_gps_location (struct inode* inode) {
 }
 
 int ext2_get_gps_location (struct inode* inode, struct gps_location*  gps) {
-	printk(KERN_DEBUG "GET_GPS_LOCATION\n");
+	if(inode == NULL) return -EINVAL;
+ 	printk(KERN_DEBUG "GET_GPS_LOCATION\n");
  	gps->lat_integer = EXT2_I(inode)->i_lat_integer;
 	gps->lat_fractional = EXT2_I(inode)->i_lat_fractional;
 	gps->lng_integer = EXT2_I(inode)->i_lng_integer;

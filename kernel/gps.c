@@ -45,8 +45,7 @@ int sys_set_gps_location(struct gps_location __user *loc) {
 		__curr_gps_loc.lat_fractional = buf.lat_fractional;
 		__curr_gps_loc.lng_integer = buf.lng_integer;
 		__curr_gps_loc.lng_fractional = buf.lng_fractional;
-		__curr_gps_loc.accuracy = buf.accuracy;
-		spin_unlock(&gps_lock);
+		__curr_gps_loc.accuracy = buf.accuracy; spin_unlock(&gps_lock);
 	}
 
 	// TODO remove below when debugging is not needed anymore.
@@ -60,28 +59,55 @@ int sys_set_gps_location(struct gps_location __user *loc) {
 }
 
 /*
- * Copy current gps location stored in kernel, into 'loc'.
+ * Copy gps location of given file, into 'loc'.
  */
 int sys_get_gps_location (const char __user *pathname, struct gps_location __user *loc) {
 	
-	unsigned long k, e;	// to check copy error
+	unsigned long e;	// to check copy error
 	struct inode *inode;
 	struct path path;
 	struct gps_location* gps;
-	const char * _pathname= pathname;	//TODO this needs to be done
+	char * _pathname;
+
+	int ret;
+
+	if(!access_ok(VERIFY_READ, pathname, sizeof(char)*255)) return -EFAULT;
+	if(!access_ok(VERIFY_READ, loc, sizeof(struct gps_location))) return -EFAULT;
+
+	_pathname = kmalloc(sizeof(char)*255, GFP_KERNEL);
+	if(!_pathname) return -EAGAIN;
 	
-//	k = copy_from_user(_pathname, pathname, sizeof(char));
-	
-	kern_path(_pathname, LOOKUP_FOLLOW, &path);
+	gps = kmalloc(sizeof(struct gps_location), GFP_KERNEL);
+
+	if (copy_from_user(_pathname, pathname, sizeof(char)*255) > 0) {
+		return -EINVAL;
+	}
+
+	// get inode
+	e = kern_path(_pathname, LOOKUP_FOLLOW, &path);
+	if (e != 0) {
+		return -ENOENT;
+	}
 	inode = path.dentry->d_inode;
-	ext2_file_inode_operations.get_gps_location(inode, gps);
 
-	//spin_lock(&gps_lock);
+	if (!inode->i_op || !(inode->i_op->permission)) {
+		return -EINVAL;
+	}
 	
+	printk(KERN_DEBUG "before permission check\n");
+	if(inode->i_op->permission(inode,MAY_READ) == -EACCES) 
+		return -EACCES; // Permission Error (authority and locality)
 
-	e = copy_to_user(loc, &gps, sizeof(struct gps_location));
-	//spin_unlock(&gps_lock);1
+	printk(KERN_DEBUG "before get_gps_location\n");
+	if(inode->i_op->get_gps_location){
+		ret = inode->i_op->get_gps_location(inode, gps);
+	} else 
+		return -ENODEV; // no GPS coordinates are embedded in the file
+	
+	if (ret < 0 ) // some error occured.
+		return ret;
 
+	e = copy_to_user(loc, gps, sizeof(struct gps_location));
 	if (e > 0) {
 		return -EINVAL;
 	}
