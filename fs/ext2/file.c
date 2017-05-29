@@ -53,7 +53,7 @@
 /* do we need to get other var as proj1 ?  maybe not*/
 
 int ext2_set_gps_location (struct inode* inode) {
-	if (inode == NULL) return -1; // TODO change ERROR
+	printk(KERN_DEBUG "SET_GPS_LOCATION\n");
  	spin_lock(&gps_lock);
 	EXT2_I(inode)->i_lat_integer = __curr_gps_loc.lat_integer; 
 	EXT2_I(inode)->i_lat_fractional = __curr_gps_loc.lat_fractional;
@@ -65,14 +65,13 @@ int ext2_set_gps_location (struct inode* inode) {
 	return 0 ;
 }
 
-int ext2_get_gps_location (struct inode* inode, struct gps_location gps) {
- 	gps.lat_integer = EXT2_I(inode)->i_lat_integer;
-	gps.lat_fractional = EXT2_I(inode)->i_lat_fractional;
-	gps.lng_integer = EXT2_I(inode)->i_lng_integer;
-	gps.lng_fractional = EXT2_I(inode)->i_lng_fractional;
-	gps.accuracy = EXT2_I(inode)->i_accuracy;
-	spin_unlock(&gps_lock);
-
+int ext2_get_gps_location (struct inode* inode, struct gps_location*  gps) {
+	printk(KERN_DEBUG "GET_GPS_LOCATION\n");
+ 	gps->lat_integer = EXT2_I(inode)->i_lat_integer;
+	gps->lat_fractional = EXT2_I(inode)->i_lat_fractional;
+	gps->lng_integer = EXT2_I(inode)->i_lng_integer;
+	gps->lng_fractional = EXT2_I(inode)->i_lng_fractional;
+	gps->accuracy = EXT2_I(inode)->i_accuracy;
 	return 0;
 }
 

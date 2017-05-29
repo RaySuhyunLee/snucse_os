@@ -553,7 +553,7 @@ got:
 	inode->i_blocks = 0;
 	inode->i_mtime = inode->i_atime = inode->i_ctime = CURRENT_TIME_SEC;
 	
-	ext2_file_inode_operations.set_gps_location(inode);
+	if(inode->i_op->set_gps_location) inode->i_op->set_gps_location(inode);
 	
 	memset(ei->i_data, 0, sizeof(ei->i_data));
 	ei->i_flags =

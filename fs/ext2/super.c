@@ -1524,7 +1524,7 @@ out:
 		i_size_write(inode, off+len-towrite);
 	inode->i_version++;
 	inode->i_mtime = inode->i_ctime = CURRENT_TIME;
-	ext2_file_inode_operations.set_gps_location(inode);
+	if(inode->i_op->set_gps_location) inode->i_op->set_gps_location(inode);
 	mark_inode_dirty(inode);
 	return len - towrite;
 }
