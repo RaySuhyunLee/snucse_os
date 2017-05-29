@@ -551,9 +551,9 @@ got:
 
 	inode->i_ino = ino;
 	inode->i_blocks = 0;
+	printk(KERN_DEBUG "ext2_new_inode\n");
 	inode->i_mtime = inode->i_atime = inode->i_ctime = CURRENT_TIME_SEC;
 	
-	if(inode->i_op->set_gps_location) inode->i_op->set_gps_location(inode);
 	
 	memset(ei->i_data, 0, sizeof(ei->i_data));
 	ei->i_flags =

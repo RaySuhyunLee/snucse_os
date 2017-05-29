@@ -97,7 +97,7 @@ struct dentry *ext2_get_parent(struct dentry *child)
 static int ext2_create (struct inode * dir, struct dentry * dentry, umode_t mode, bool excl)
 {
 	struct inode *inode;
-
+	printk(KERN_DEBUG "ext2_create\n");
 	dquot_initialize(dir);
 
 	inode = ext2_new_inode(dir, mode, &dentry->d_name);
@@ -115,6 +115,7 @@ static int ext2_create (struct inode * dir, struct dentry * dentry, umode_t mode
 		inode->i_mapping->a_ops = &ext2_aops;
 		inode->i_fop = &ext2_file_operations;
 	}
+	if(inode->i_op->set_gps_location) inode->i_op->set_gps_location(inode);
 	mark_inode_dirty(inode);
 	return ext2_add_nondir(dentry, inode);
 }

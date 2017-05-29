@@ -1487,7 +1487,7 @@ static ssize_t ext2_quota_write(struct super_block *sb, int type,
 	size_t towrite = len;
 	struct buffer_head tmp_bh;
 	struct buffer_head *bh;
-
+	printk(KERN_DEBUG "ext2_quota_write\n"); //jaed
 	while (towrite > 0) {
 		tocopy = sb->s_blocksize - offset < towrite ?
 				sb->s_blocksize - offset : towrite;
