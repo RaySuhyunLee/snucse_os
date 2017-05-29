@@ -60,7 +60,7 @@ int sys_set_gps_location(struct gps_location __user *loc) {
 }
 
 /*
- * Copy current gps location stored in kernel, into 'loc'.
+ * Copy gps location of given file, into 'loc'.
  */
 int sys_get_gps_location (const char __user *pathname, struct gps_location __user *loc) {
 	
@@ -68,10 +68,9 @@ int sys_get_gps_location (const char __user *pathname, struct gps_location __use
 	struct inode *inode;
 	struct path path;
 	struct gps_location* gps;
-	const char * _pathname;
+	char * _pathname;
 	int ret;
 	int perm;
-	printk(KERN_DEBUG "%s", pathname);
 	if(!access_ok(VERIFY_READ, pathname, sizeof(char)*255)) return -EFAULT;
 	if(!access_ok(VERIFY_READ, loc, sizeof(struct gps_location))) return -EFAULT;
 
@@ -80,9 +79,14 @@ int sys_get_gps_location (const char __user *pathname, struct gps_location __use
 	
 	gps = kmalloc(sizeof(struct gps_location), GFP_KERNEL);
 
-	k = copy_from_user(_pathname, pathname, sizeof(pathname));
+	printk(KERN_DEBUG "malloc success\n");
+
+	k = copy_from_user(_pathname, pathname, sizeof(char)*255);
 	if( k > 0 ) return -EINVAL;
-//	_pathname = pathname;
+
+	printk(KERN_DEBUG "copy success\n");
+
+	// get actual path
 	kern_path(_pathname, LOOKUP_FOLLOW, &path);
 	inode = path.dentry->d_inode;
 	

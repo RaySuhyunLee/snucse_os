@@ -16,6 +16,7 @@ struct gps_location {
 int main (int argc, char** argv) {
 	char *path = argv[1];
 	printf("%s\n",path);
+
  	struct gps_location* file_loc = malloc (sizeof(struct gps_location));
 	syscall(381,path, file_loc);
 	printf("https://www.google.co.kr/maps/place/");
