@@ -1,7 +1,7 @@
 # os-team20
 
 ## Project 4, Finally!
-We may go home. We do not need to weep all night!!!!
+We may go home. We do not need to weep all night!!!! This all-night work was the last pernoctation.
 
 ## High-Level Design
 We followed T.A's high level guideline in this project.
@@ -84,5 +84,5 @@ Thus, our kernel
 * At the end of last project comes JongGang(Probably).
 
 ## P.S.
-This time, we wrote README very shortly for our great T.A.
+In this time, we wrote README very shortly for our great T.A.
 Thank you so much.
