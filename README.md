@@ -17,6 +17,8 @@ i_lng_integer (32-bits)
 i_lng_fractional (32-bits)
 i_accuracy (32-bits)
 ```
+In ext2_inode, these are `le32` type (little endian 32) and in ext2_inode_info, these are `u32` type.
+
 
 * Current GPS location is stored in global variable, and is protected by spinlock for SMP environment.
 
@@ -52,7 +54,9 @@ Using get_gps_location system call, read the path and return google maps link ab
 the form of link is `https://www.google.co.kr/maps/place/XXXXXX.XXXXXX°N+XXXXXX.XXXXXX°E`
 
 ## Test
-###
+### e2fsprogs
+We add some variables about gps to `ext2_inode` and `ext2_inode_large` in `ext2_fs.h`. The varible's order are same as fs's.
+
 //TODO Suhyun
 ### mmap test
 read file on C program, modify file using mmap function.
