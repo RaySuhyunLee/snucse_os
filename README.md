@@ -36,7 +36,7 @@ Also, we modify `inode.c  : static int __ext2_write_inode(struct inode *inode, i
 
 ext2_get_gps_location is only using in get_gps_location system call. It set gps to inode's gps information.
 
-### Pzzzermission check.
+### Permission check.
 make `ext2_permission` function which check the geographical accessibility(See Permission Policy) and general permission.
 
 ### Supporting mmap.
