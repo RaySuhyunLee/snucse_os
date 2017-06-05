@@ -80,7 +80,7 @@ Thus, our kernel
 ```
 
 ## Lessons Learned
-* Ext2 File System is simpler than what we thought. But the project is much harder than our thought.
+* Ext2 File System was simpler than we thought. But the project was much harder than we thought.
 * Now, we admire the kernel programmer. They seem to be GOD
 * At the end of hardship comes hapiness.
 * At the end of hapiness comes another project.
