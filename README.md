@@ -37,29 +37,28 @@ Also, we modify `inode.c  : static int __ext2_write_inode(struct inode *inode, i
 ext2_get_gps_location is only using in get_gps_location system call. It set gps to inode's gps information.
 
 ### Permission check.
-make `ext2_permission` function which check the geographical accessibility(See Permission Policy) and general permission.
+We made a function `ext2_permission()` which checks the geographical accessibility(See Permission Policy) and general permission.
 
 ### Supporting mmap.
- User can use mmap for modifying the file. We supported this situation by modifying  `int generic_file_mmap(struct file * file, struct vm_area_struct * vma)` in mm/filemap.c
+Users can use mmap to modify the file. We supported this case by modifying  `int generic_file_mmap(struct file * file, struct vm_area_struct * vma)` in mm/filemap.c
 
 ## System Call
-//TODO Suhyun
+We implemented two system calls: one(set_gps_location) is for setting current gps position(which is stored in kernel), and the other(get_gps_location) is for getting gps location of a specific file.
 
 ## User program
 ### gpsupdate
-//TODO Suhyun
+gps_update.c runs with three parameters: `latitude`, `longitude`, and `accuracy`. The first two arguments should be real numbers, whose significant figures should be less or equal to 6. The last argument should be an integer.
 
 ### file_loc
 Using get_gps_location system call, read the path and return google maps link about file's coordinates. 
-the form of link is `https://www.google.co.kr/maps/place/XXXXXX.XXXXXX°N+XXXXXX.XXXXXX°E`
+the format of link is `https://www.google.co.kr/maps/place/XXXXXX.XXXXXX°N+XXXXXX.XXXXXX°E`
 
 ## Test
 ### e2fsprogs
 We add some variables about gps to `ext2_inode` and `ext2_inode_large` in `ext2_fs.h`. The varible's order are same as fs's.
 
-//TODO Suhyun
 ### mmap test
-read file on C program, modify file using mmap function.
+When a file is modified, it's gps location values should be updated with current ones. This is also true for file modification using memory mapped I/O. Our test program mmap_test.c simply reads a file, and then modify file using mmap function. When we ran this program on a specific file, we could confirm that it's location is updated as well.
 
 
 ## Permission Policy
@@ -88,5 +87,5 @@ Thus, our kernel
 * At the end of last project comes JongGang(Probably).
 
 ## P.S.
-In this time, we wrote README very shortly for our great T.A.
+This time, we wrote README quite shortly to lessen the burden of our great T.A.s
 Thank you so much.
