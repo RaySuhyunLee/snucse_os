@@ -84,7 +84,7 @@ Thus, our kernel
 1. Checks if integer parts of latitude and longitude are equal.
 2. If equal, checks if the distance calculated from fractional parts, is less than sum of two accuracy values.
 
-Supposing a and b represent two locations, fractional part compare logic is described as below:
+Supposing a and b represent two locations, fractional part compare logic is given as follows:
 ((a_lat_fractional_part - b_lat_fractional_part) / 9)^2 + ((a_lng_fractional_part - b_lng_fractional_part) / 9)^2
       < (accuracy_a + accuracy_b)^2
 ```
