@@ -53,13 +53,18 @@ gps_update.c runs with three parameters: `latitude`, `longitude`, and `accuracy`
 Using get_gps_location system call, read the path and return google maps link about file's coordinates. 
 the format of link is `https://www.google.co.kr/maps/place/XXXXXX.XXXXXX°N+XXXXXX.XXXXXX°E`
 
-## Test
+## Tests
 ### e2fsprogs
 We add some variables about gps to `ext2_inode` and `ext2_inode_large` in `ext2_fs.h`. The varible's order are same as fs's.
 
 ### mmap test
 When a file is modified, it's gps location values should be updated with current ones. This is also true for file modification using memory mapped I/O. Our test program mmap_test.c simply reads a file, and then modify file using mmap function. When we ran this program on a specific file, we could confirm that it's location is updated as well.
 
+### file_loc test
+file_loc.c prints out the location of specific file in a google map link format. We tested this program for several files and checked if there links are correct.
+
+### permission test
+A file written in a location should not be opened in other locations that are far away. We made a test script `access_location_test.sh` which modifies location and try to read/write some files. When it tried to access files that it doesn't have permission, we could see that permission denied error occurs.
 
 ## Permission Policy
 Since linux doesn't support floating point operations inside kernel, we used following formulas to compare file location with current location(GPS hardware location).
@@ -73,10 +78,15 @@ When theta is 0.000001 (in other words, fractional part of degree equals to 1)
 x = 6400 * 0.000001 * 360 / 2pi
   = 0.111701m
   
-This means that small change in integer part of degree becomes significantly large when converted to distance. In this case we can assume that two locations are far enough from each other.
+This means that small change in integer part of degree becomes significantly large when converted to distance.
+When two integer part have diffrent values, we can assume that two locations are far enough from each other.
 Thus, our kernel
 1. Checks if integer parts of latitude and longitude are equal.
-2. If equal, checks if distance calculated from fractional parts, is less than sum of two accuracy values.
+2. If equal, checks if the distance calculated from fractional parts, is less than sum of two accuracy values.
+
+Supposing a and b represent two locations, fractional part compare logic is described as below:
+((a_lat_fractional_part - b_lat_fractional_part) / 9)^2 + ((a_lng_fractional_part - b_lng_fractional_part) / 9)^2
+      < (accuracy_a + accuracy_b)^2
 ```
 
 ## Lessons Learned
